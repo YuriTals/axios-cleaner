@@ -24,7 +24,8 @@ Dados gravados, todos em `%APPDATA%\Axios Cleaner`, que só o próprio usuário 
 
 ### Atualizações
 
-- Com a opção ligada (padrão), o backend em Rust consulta `https://github.com/YuriTals/axios-cleaner-releases/releases/latest/download/latest.json` ao abrir e a cada 12 h. A requisição não leva dados do usuário.
+- O repositório precisa ser público para o app enxergar as releases (o GitHub esconde releases de repositórios privados).
+- Com a opção ligada (padrão), o backend em Rust consulta `https://github.com/YuriTals/axios-cleaner/releases/latest/download/latest.json` ao abrir e a cada 12 h. A requisição não leva dados do usuário.
 - Ao instalar, o arquivo é baixado do mesmo repositório e **só é executado se a assinatura minisign bater com a chave pública embutida no app** (`tauri.conf.json → plugins.updater.pubkey`). Um instalador trocado no caminho, ou publicado por outra pessoa, é recusado.
 - A chave privada fica fora do repositório (`~/.tauri/axios-cleaner-updater.key`). Quem tiver essa chave consegue publicar atualizações que o app aceita: guarde-a com cuidado.
 - Desligar em **Ajustes › Atualizações** volta o app ao modo sem nenhuma conexão.

@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuriTals/axios-cleaner-releases/releases/latest"><img src="https://img.shields.io/badge/download-latest-brightgreen?style=flat-square" alt="Download"></a>
+  <a href="https://github.com/YuriTals/axios-cleaner/releases/latest"><img src="https://img.shields.io/badge/download-latest-brightgreen?style=flat-square" alt="Download"></a>
   <img src="https://img.shields.io/badge/platform-Windows-0078D6?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/requirements-Windows%2010%2F11%20%C2%B7%20x64-fa4e49?style=flat-square" alt="Requirements">
   <img src="https://img.shields.io/badge/built%20with-Tauri%202%20%C2%B7%20Rust-FF2448?style=flat-square" alt="Built with Tauri and Rust">
@@ -67,7 +67,7 @@
 
 ## Install
 
-1. Download `AxiosCleaner_<version>_x64-setup.exe` from the [Releases page](https://github.com/YuriTals/axios-cleaner-releases/releases/latest) and run it.
+1. Download `AxiosCleaner_<version>_x64-setup.exe` from the [Releases page](https://github.com/YuriTals/axios-cleaner/releases/latest) and run it.
 2. Open **Axios Cleaner**. It asks for administrator permission, which it needs to clean Windows folders and every user's Temp folder.
 
 The installer is not code-signed, so Windows SmartScreen may warn you the first time. Click **More info › Run anyway**.
@@ -80,7 +80,7 @@ The installer is not code-signed, so Windows SmartScreen may warn you the first 
 
 ## Privacy
 
-Everything happens on your machine. Axios Cleaner has **no account, no telemetry and no analytics**. Its only network connection is the update check: at launch and about every 12 hours it asks GitHub for the latest release of [axios-cleaner-releases](https://github.com/YuriTals/axios-cleaner-releases), sending nothing about you. You can turn it off in **Settings › Updates**.
+Everything happens on your machine. Axios Cleaner has **no account, no telemetry and no analytics**. Its only network connection is the update check: at launch and about every 12 hours it asks GitHub for the latest release of this repository, sending nothing about you. You can turn it off in **Settings › Updates**.
 
 The interface runs on Microsoft's WebView2, which by default contacts Microsoft (automatic sign-in with the Windows account, SmartScreen, remote configuration). The app turns all of that off and points WebView2 at a dead network, so the interface itself cannot reach the internet; the update check runs in the native backend. With the update check off, 90 seconds of monitoring showed **zero external connections** from the app and its WebView2 processes.
 
@@ -106,7 +106,7 @@ npm test             # interface tests (node --test) and Rust tests (cargo test)
 ### Publishing an update
 
 1. Bump the version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `package.json` and `ui/js/catalog.js`, then commit and push.
-2. Run `npm run release -- notes.md`. It builds the installer signed with the update key (`~/.tauri/axios-cleaner-updater.key`, kept out of the repository), writes `latest.json` and publishes the release to [axios-cleaner-releases](https://github.com/YuriTals/axios-cleaner-releases) and to this repository.
+2. Run `npm run release -- notes.md`. It builds the installer signed with the update key (`~/.tauri/axios-cleaner-updater.key`, kept out of the repository), writes `latest.json` and publishes the release to this repository.
 3. Installed apps with the update check on will offer the new version.
 
 Development helpers:
@@ -125,7 +125,7 @@ Development helpers:
 | `src-tauri/src/engine.rs`, `rules.rs` | Scanning, safe deletion and the rules of each category |
 | `src-tauri/src/system.rs` | Windows integration: processes, services, maintenance, scheduling, Explorer |
 | `src-tauri/src/shell.rs` | Window, tray icon and scheduled cleaning |
-| `src-tauri/src/updates.rs` | Signed updates from the public releases repository |
+| `src-tauri/src/updates.rs` | Signed updates from this repository's releases |
 | `scripts/release.mjs` | Signed build + `latest.json` + GitHub releases |
 | `src-tauri/src/files.rs`, `startup.rs`, `perf.rs`, `store.rs` | Large files and space map, startup programs, telemetry, settings and logs |
 | `ui/js/` | Interface modules: `state`, `format`, `run` (execution button), `views/*`, `canvas`, `actions`, `render`, `main` |

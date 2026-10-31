@@ -1,4 +1,4 @@
-//! Atualizacoes: consulta o repositorio publico de releases no GitHub e
+//! Atualizacoes: consulta a ultima release do projeto no GitHub e
 //! instala a versao nova. O plugin so aceita instaladores assinados com a
 //! chave do projeto (a publica fica em tauri.conf.json).
 

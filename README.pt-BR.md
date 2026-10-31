@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuriTals/axios-cleaner-releases/releases/latest"><img src="https://img.shields.io/badge/download-%C3%BAltima%20vers%C3%A3o-brightgreen?style=flat-square" alt="Download"></a>
+  <a href="https://github.com/YuriTals/axios-cleaner/releases/latest"><img src="https://img.shields.io/badge/download-%C3%BAltima%20vers%C3%A3o-brightgreen?style=flat-square" alt="Download"></a>
   <img src="https://img.shields.io/badge/plataforma-Windows-0078D6?style=flat-square" alt="Plataforma">
   <img src="https://img.shields.io/badge/requisitos-Windows%2010%2F11%20%C2%B7%20x64-fa4e49?style=flat-square" alt="Requisitos">
   <img src="https://img.shields.io/badge/feito%20com-Tauri%202%20%C2%B7%20Rust-FF2448?style=flat-square" alt="Feito com Tauri e Rust">
@@ -67,7 +67,7 @@
 
 ## Instalação
 
-1. Baixe o `AxiosCleaner_<versão>_x64-setup.exe` na [página de Releases](https://github.com/YuriTals/axios-cleaner-releases/releases/latest) e execute.
+1. Baixe o `AxiosCleaner_<versão>_x64-setup.exe` na [página de Releases](https://github.com/YuriTals/axios-cleaner/releases/latest) e execute.
 2. Abra o **Axios Cleaner**. Ele pede permissão de administrador, necessária para limpar as pastas do Windows e a pasta Temp de todos os usuários.
 
 O instalador não tem assinatura digital, então o Windows SmartScreen pode avisar na primeira vez. Clique em **Mais informações › Executar assim mesmo**.
@@ -80,7 +80,7 @@ O instalador não tem assinatura digital, então o Windows SmartScreen pode avis
 
 ## Privacidade
 
-Tudo acontece no seu computador. O Axios Cleaner **não tem conta, telemetria nem análise de uso**. A única conexão de rede é a verificação de atualizações: ao abrir e a cada 12 horas ele pergunta ao GitHub qual é a última release do [axios-cleaner-releases](https://github.com/YuriTals/axios-cleaner-releases), sem enviar nada sobre você. Dá para desligar em **Ajustes › Atualizações**.
+Tudo acontece no seu computador. O Axios Cleaner **não tem conta, telemetria nem análise de uso**. A única conexão de rede é a verificação de atualizações: ao abrir e a cada 12 horas ele pergunta ao GitHub qual é a última release deste repositório, sem enviar nada sobre você. Dá para desligar em **Ajustes › Atualizações**.
 
 A interface roda na WebView2 da Microsoft, que por padrão contata a Microsoft (login automático com a conta do Windows, SmartScreen, configuração remota). O app desliga tudo isso e aponta a WebView2 para uma rede morta, então a própria interface não consegue acessar a internet; a verificação de atualizações roda no backend nativo. Com a verificação desligada, 90 segundos de monitoramento mostraram **zero conexões externas** do app e dos processos da WebView2.
 
@@ -106,7 +106,7 @@ npm test             # testes da interface (node --test) e do Rust (cargo test)
 ### Publicando uma atualização
 
 1. Aumente a versão em `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `package.json` e `ui/js/catalog.js`, faça commit e push.
-2. Rode `npm run release -- notas.md`. Ele gera o instalador assinado com a chave de atualização (`~/.tauri/axios-cleaner-updater.key`, fora do repositório), monta o `latest.json` e publica a release no [axios-cleaner-releases](https://github.com/YuriTals/axios-cleaner-releases) e neste repositório.
+2. Rode `npm run release -- notas.md`. Ele gera o instalador assinado com a chave de atualização (`~/.tauri/axios-cleaner-updater.key`, fora do repositório), monta o `latest.json` e publica a release neste repositório.
 3. Os apps instalados com a verificação ligada vão oferecer a versão nova.
 
 Ajudas de desenvolvimento:
@@ -125,7 +125,7 @@ Ajudas de desenvolvimento:
 | `src-tauri/src/engine.rs`, `rules.rs` | Varredura, exclusão segura e as regras de cada categoria |
 | `src-tauri/src/system.rs` | Integração com o Windows: processos, serviços, manutenção, agendamento, Explorer |
 | `src-tauri/src/shell.rs` | Janela, ícone na bandeja e limpeza agendada |
-| `src-tauri/src/updates.rs` | Atualizações assinadas pelo repositório público de releases |
+| `src-tauri/src/updates.rs` | Atualizações assinadas pelas releases deste repositório |
 | `scripts/release.mjs` | Build assinado + `latest.json` + releases no GitHub |
 | `src-tauri/src/files.rs`, `startup.rs`, `perf.rs`, `store.rs` | Arquivos grandes e mapa, inicialização, telemetria, configurações e logs |
 | `ui/js/` | Módulos da interface: `state`, `format`, `run` (botão de execução), `views/*`, `canvas`, `actions`, `render`, `main` |

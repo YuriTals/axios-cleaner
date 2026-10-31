@@ -2,7 +2,7 @@
 //
 //   npm run release -- caminho/das/notas.md
 //
-// O app instalado consulta o latest.json do repositorio publico de releases
+// O app instalado consulta o latest.json da ultima release deste repositorio
 // e so instala o arquivo se a assinatura bater com a chave do projeto.
 //
 // Variaveis de ambiente (opcionais):
@@ -14,8 +14,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const PUBLIC_REPO = "YuriTals/axios-cleaner-releases";
-const SOURCE_REPO = "YuriTals/axios-cleaner";
+const REPO = "YuriTals/axios-cleaner";
 const ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const NSIS_DIR = join(ROOT, "src-tauri/target/release/bundle/nsis");
 const DIST = join(ROOT, "dist");
@@ -34,7 +33,7 @@ function ensureCleanAndPushed() {
 }
 
 function ensureNewVersion(tag) {
-  const exists = spawnSync("gh", ["release", "view", tag, "-R", PUBLIC_REPO], { cwd: ROOT, shell: true, stdio: "ignore" }).status === 0;
+  const exists = spawnSync("gh", ["release", "view", tag, "-R", REPO], { cwd: ROOT, shell: true, stdio: "ignore" }).status === 0;
   if (exists) fail(`A versão ${tag} já foi publicada. Aumente a versão em src-tauri/tauri.conf.json, Cargo.toml, package.json e ui/js/catalog.js.`);
 }
 
@@ -68,7 +67,7 @@ function writeManifest(version, notes, artifact) {
     platforms: {
       "windows-x86_64": {
         signature: artifact.signature,
-        url: `https://github.com/${PUBLIC_REPO}/releases/download/v${version}/${artifact.name}`,
+        url: `https://github.com/${REPO}/releases/download/v${version}/${artifact.name}`,
       },
     },
   };
@@ -78,8 +77,7 @@ function writeManifest(version, notes, artifact) {
 }
 
 function publish(tag, title, notesFile, files) {
-  run("gh", ["release", "create", tag, "-R", PUBLIC_REPO, ...files.map((f) => `"${f}"`), "--title", `"${title}"`, "--notes-file", `"${notesFile}"`, "--latest"]);
-  run("gh", ["release", "create", tag, "-R", SOURCE_REPO, `"${files[0]}"`, "--target", "main", "--title", `"${title}"`, "--notes-file", `"${notesFile}"`, "--latest"]);
+  run("gh", ["release", "create", tag, "-R", REPO, ...files.map((f) => `"${f}"`), "--target", "main", "--title", `"${title}"`, "--notes-file", `"${notesFile}"`, "--latest"]);
 }
 
 const notesFile = process.argv[2];
