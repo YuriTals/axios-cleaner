@@ -4,7 +4,7 @@ import { MAP_COLORS } from "./catalog.js";
 import { runFraction } from "./run.js";
 import { S, areas, scanning } from "./state.js";
 
-export const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const FONT = (px) => `500 ${px}px "IBM Plex Mono", monospace`;
 const TURN = Math.PI * 2;
@@ -96,7 +96,7 @@ function coreCell(g, turn, depth, d, scanF) {
   return { ch: onEdge ? "·" : ringChar(depth), color: g.slices[k].color, alpha };
 }
 
-export function drawCore(t) {
+function drawCore(t) {
   const cv = document.querySelector("#corecv");
   const p = cv && prepare(cv);
   if (!p) return;

@@ -29,7 +29,7 @@ export const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "
 
 export const appNames = (list) => list.map((p) => APP_NAMES[p] || p.replace(/\.exe$/i, ""));
 
-export const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
 /** "há 3 dias", "há 2 meses"... a partir de segundos desde 1970. */
 export function ago(secs, nowMs = Date.now()) {

@@ -95,7 +95,7 @@ export function cancelRun() {
 // Manutencao e ferramentas
 // ---------------------------------------------------------------------------
 
-export async function runMaintenance() {
+async function runMaintenance() {
   const ids = TASKS.map((t) => t.id).filter((id) => S.tasks.picked.has(id));
   S.tasks.status = {};
   S.run = {
@@ -117,7 +117,7 @@ export async function loadBigFiles() {
   render();
 }
 
-export async function recycleBigFiles() {
+async function recycleBigFiles() {
   const paths = [...S.big.picked];
   if (!paths.length || busy()) return;
   S.run = { kind: "recycle", action: "recycle-big", cancel: "recycle", start: performance.now(), total: paths.length, done: 0 };

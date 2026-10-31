@@ -11,10 +11,7 @@
     "test:rust": "cd src-tauri && set AXIOS_NO_ELEVATE=1&& cargo test --release"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0",
-    "@fontsource/doto": "^5.0.0",
-    "@fontsource/ibm-plex-mono": "^5.0.0",
-    "@fontsource-variable/inter": "^5.0.0"
+    "@tauri-apps/cli": "^2.0.0"
   },
   "type": "module"
 }
