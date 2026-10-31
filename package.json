@@ -1,0 +1,20 @@
+{
+  "name": "axios-cleaner",
+  "private": true,
+  "version": "1.2.1",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "icon": "tauri icon assets/icon.svg",
+    "test": "npm run test:ui && npm run test:rust",
+    "test:ui": "node --test \"tests/ui/*.test.js\"",
+    "test:rust": "cd src-tauri && set AXIOS_NO_ELEVATE=1&& cargo test --release"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@fontsource/doto": "^5.0.0",
+    "@fontsource/ibm-plex-mono": "^5.0.0",
+    "@fontsource-variable/inter": "^5.0.0"
+  },
+  "type": "module"
+}
