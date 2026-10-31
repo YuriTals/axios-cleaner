@@ -4,6 +4,7 @@ import { CHANNELS, SCHEDULE_FREQS, VERSION, WEEKDAYS } from "../catalog.js";
 import { esc, fmt, plural } from "../format.js";
 import { S, catsOf } from "../state.js";
 import { bigNumber, empty, panelHeader, switchRow } from "../widgets.js";
+import { updateStatus } from "./update.js";
 
 // ---------------------------------------------------------------------------
 // Historico
@@ -84,6 +85,21 @@ function scheduleSection() {
     <div class="sched-msg ${tone}">${esc(message)}</div>`;
 }
 
+function updatesSection() {
+  const [tone, text] = updateStatus();
+  const toggle = switchRow({
+    on: !!S.settings.updateCheck, attrs: `data-setting="updateCheck"`, name: "Verificar atualizações automaticamente",
+    desc: "Consulta só o GitHub do projeto ao abrir e a cada 12 h. Nenhum dado seu é enviado. A versão nova só é instalada se estiver assinada.",
+  });
+  const action = S.update.info
+    ? `<button class="btn" data-openupdate>Ver atualização</button>`
+    : `<button class="btn" data-checkupdate ${S.update.checking ? "disabled" : ""}>Verificar agora</button>`;
+  return `
+    <div class="dh">Atualizações</div>
+    <div class="list">${toggle}</div>
+    <div class="sched" style="margin-top:8px">${action}<span class="sched-msg ${tone}" style="margin:0">${esc(text)}</span></div>`;
+}
+
 function categoriesSection() {
   return CHANNELS.filter((c) => c.group).map((ch) => `
     <div class="dh">${ch.code} · ${ch.t}</div>
@@ -99,6 +115,7 @@ export function viewSettings() {
         <div class="dh">Comportamento</div>
         <div class="list">${behavior}${adminRow()}</div>
         ${scheduleSection()}
+        ${updatesSection()}
         <div class="dh">Categorias incluídas na limpeza</div>
         <div class="list">${categoriesSection()}</div>
         <div class="about">

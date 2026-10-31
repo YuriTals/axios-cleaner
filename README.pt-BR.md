@@ -7,7 +7,7 @@
 <p align="center">
   O Axios Cleaner deixa o seu PC com Windows leve, rápido e privado.<br>
   Ele remove arquivos temporários, caches e logs do <b>Windows</b>, dos <b>navegadores</b>, <b>apps</b>, <b>jogos</b> e <b>ferramentas de dev</b>,<br>
-  com uma interface futurista em ASCII — e <b>nada sai do seu computador</b>.
+  com uma interface futurista em ASCII — <b>sem conta, sem telemetria, nada sobre você sai do seu computador</b>.
 </p>
 
 <p align="center">
@@ -16,11 +16,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuriTals/axios-cleaner/releases/latest"><img src="https://img.shields.io/badge/download-%C3%BAltima%20vers%C3%A3o-brightgreen?style=flat-square" alt="Download"></a>
+  <a href="https://github.com/YuriTals/axios-cleaner-releases/releases/latest"><img src="https://img.shields.io/badge/download-%C3%BAltima%20vers%C3%A3o-brightgreen?style=flat-square" alt="Download"></a>
   <img src="https://img.shields.io/badge/plataforma-Windows-0078D6?style=flat-square" alt="Plataforma">
   <img src="https://img.shields.io/badge/requisitos-Windows%2010%2F11%20%C2%B7%20x64-fa4e49?style=flat-square" alt="Requisitos">
   <img src="https://img.shields.io/badge/feito%20com-Tauri%202%20%C2%B7%20Rust-FF2448?style=flat-square" alt="Feito com Tauri e Rust">
-  <img src="https://img.shields.io/badge/privacidade-100%25%20local-7BE38F?style=flat-square" alt="100% local">
+  <img src="https://img.shields.io/badge/privacidade-sem%20telemetria-7BE38F?style=flat-square" alt="Sem telemetria">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-AGPL--3.0-blue?style=flat-square" alt="Licença"></a>
   <a href="https://buymeacoffee.com/axiosdevteam"><img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-axiosdevteam-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=000000" alt="Buy Me A Coffee"></a>
   <a href="https://ko-fi.com/axiosdevteam"><img src="https://img.shields.io/badge/Ko--fi-axiosdevteam-FF5E5B?style=flat-square&logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
@@ -36,6 +36,7 @@
 - **Limpeza agendada e ícone na bandeja:** diária, semanal ou mensal, sem abrir janela e com aviso no fim, além da opção "fechar para a bandeja".
 - **Telemetria ao vivo:** CPU, GPU, memória e atividade de disco em gráficos ASCII, e cada unidade como uma barra ASCII mostrando quanto é lixo.
 - **Histórico e logs:** cada limpeza gera um log em texto que você abre pelo próprio app.
+- **Atualizações assinadas:** o app avisa quando sai versão nova e instala segurando um botão. Ele só aceita instaladores assinados com a chave do projeto, e a verificação pode ser desligada.
 
 <p align="center">
   <img src="docs/screenshots/andamento.png" width="420" alt="Limpeza em andamento com porcentagem e tempo restante">
@@ -66,7 +67,7 @@
 
 ## Instalação
 
-1. Baixe o `Axios Cleaner_<versão>_x64-setup.exe` na [página de Releases](https://github.com/YuriTals/axios-cleaner/releases/latest) e execute.
+1. Baixe o `AxiosCleaner_<versão>_x64-setup.exe` na [página de Releases](https://github.com/YuriTals/axios-cleaner-releases/releases/latest) e execute.
 2. Abra o **Axios Cleaner**. Ele pede permissão de administrador, necessária para limpar as pastas do Windows e a pasta Temp de todos os usuários.
 
 O instalador não tem assinatura digital, então o Windows SmartScreen pode avisar na primeira vez. Clique em **Mais informações › Executar assim mesmo**.
@@ -79,9 +80,9 @@ O instalador não tem assinatura digital, então o Windows SmartScreen pode avis
 
 ## Privacidade
 
-Tudo acontece no seu computador. O Axios Cleaner **não tem conta, telemetria, análise de uso nem atualização automática**, e o código dele não faz nenhuma conexão de rede.
+Tudo acontece no seu computador. O Axios Cleaner **não tem conta, telemetria nem análise de uso**. A única conexão de rede é a verificação de atualizações: ao abrir e a cada 12 horas ele pergunta ao GitHub qual é a última release do [axios-cleaner-releases](https://github.com/YuriTals/axios-cleaner-releases), sem enviar nada sobre você. Dá para desligar em **Ajustes › Atualizações**.
 
-A interface roda na WebView2 da Microsoft, que por padrão contata a Microsoft (login automático com a conta do Windows, SmartScreen, configuração remota). O app desliga tudo isso e aponta a WebView2 para uma rede morta, então a interface não consegue acessar a internet. Com o app aberto, 90 segundos de monitoramento mostraram **zero conexões externas** do app e dos processos da WebView2.
+A interface roda na WebView2 da Microsoft, que por padrão contata a Microsoft (login automático com a conta do Windows, SmartScreen, configuração remota). O app desliga tudo isso e aponta a WebView2 para uma rede morta, então a própria interface não consegue acessar a internet; a verificação de atualizações roda no backend nativo. Com a verificação desligada, 90 segundos de monitoramento mostraram **zero conexões externas** do app e dos processos da WebView2.
 
 Configurações, histórico e logs ficam só em `%APPDATA%\Axios Cleaner`. A auditoria completa, com fronteiras de confiança, achados e evidências, está em [SECURITY.md](SECURITY.md).
 
@@ -102,6 +103,12 @@ npm run build        # gera o .exe e o instalador (src-tauri/target/release/bund
 npm test             # testes da interface (node --test) e do Rust (cargo test)
 ```
 
+### Publicando uma atualização
+
+1. Aumente a versão em `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `package.json` e `ui/js/catalog.js`, faça commit e push.
+2. Rode `npm run release -- notas.md`. Ele gera o instalador assinado com a chave de atualização (`~/.tauri/axios-cleaner-updater.key`, fora do repositório), monta o `latest.json` e publica a release no [axios-cleaner-releases](https://github.com/YuriTals/axios-cleaner-releases) e neste repositório.
+3. Os apps instalados com a verificação ligada vão oferecer a versão nova.
+
 Ajudas de desenvolvimento:
 
 - `AXIOS_NO_ELEVATE=1`: compila sem o pedido de administrador (testes e preview).
@@ -118,6 +125,8 @@ Ajudas de desenvolvimento:
 | `src-tauri/src/engine.rs`, `rules.rs` | Varredura, exclusão segura e as regras de cada categoria |
 | `src-tauri/src/system.rs` | Integração com o Windows: processos, serviços, manutenção, agendamento, Explorer |
 | `src-tauri/src/shell.rs` | Janela, ícone na bandeja e limpeza agendada |
+| `src-tauri/src/updates.rs` | Atualizações assinadas pelo repositório público de releases |
+| `scripts/release.mjs` | Build assinado + `latest.json` + releases no GitHub |
 | `src-tauri/src/files.rs`, `startup.rs`, `perf.rs`, `store.rs` | Arquivos grandes e mapa, inicialização, telemetria, configurações e logs |
 | `ui/js/` | Módulos da interface: `state`, `format`, `run` (botão de execução), `views/*`, `canvas`, `actions`, `render`, `main` |
 | `tests/ui/` | Testes da interface |

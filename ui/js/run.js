@@ -15,7 +15,7 @@ const ETA_MIN_SECONDS = 1.5;
 const BAR_WIDTH = 30;
 const LONG_LABEL = 12;
 
-const KIND_LABEL = { scan: "Analisando", clean: "Limpando", tasks: "Manutenção", recycle: "Lixeira" };
+const KIND_LABEL = { scan: "Analisando", clean: "Limpando", tasks: "Manutenção", recycle: "Lixeira", update: "Atualizando" };
 
 const isCleanAction = (a) => a === "all" || a === "recycle" || a.startsWith("group:");
 
@@ -41,6 +41,7 @@ export function runFraction(r) {
     clean: () => (r.done + r.cur) / Math.max(1, r.total),
     scan: () => r.done / Math.max(1, r.total),
     recycle: () => r.done / Math.max(1, r.total),
+    update: () => (r.total ? r.done / r.total : 0),
     tasks: () => tasksFraction(r),
   }[r.kind]();
   return Math.max(0, Math.min(MAX_UNFINISHED, raw));
@@ -60,6 +61,7 @@ function eta(r) {
 function stage(r) {
   if (r.kind === "scan") return `Analisando · ${r.done}/${r.total} categorias`;
   if (r.kind === "recycle") return `Lixeira · ${r.done}/${r.total} arquivos`;
+  if (r.kind === "update") return r.total && r.done >= r.total ? "Instalando…" : `Baixando · ${fmt(r.done)}${r.total ? ` de ${fmt(r.total)}` : ""}`;
   if (r.kind === "tasks") return taskById(r.curId)?.name || "Preparando…";
   const cat = S.cats.find((c) => c.id === r.cat);
   return cat ? `${cat.name} · ${fmt(r.freed || 0)}` : r.phase || "Preparando…";

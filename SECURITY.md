@@ -4,23 +4,30 @@ Auditoria feita em 30/10/2026 (v1.2.1), seguindo a metodologia do
 [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill):
 reconhecimento → caça por classe de ataque → validação → relatório.
 
-## Princípio: nada sai do computador
+## Princípio: nada sobre você sai do computador
 
-O app é 100% local. Ele não tem servidor, conta, telemetria, atualização automática nem análise de uso.
+O app não tem servidor, conta, telemetria nem análise de uso. A única conexão de rede é a verificação de atualizações (seção abaixo), que pode ser desligada.
 
 | Verificação | Resultado |
 |---|---|
 | URLs, `fetch`, WebSocket ou `sendBeacon` no código (`ui/`, `src-tauri/src/`) | nenhum |
-| Bibliotecas de rede nas dependências Rust (`reqwest`, `hyper`, `rustls`, `ureq`, plugins `http`/`updater`) | nenhuma |
-| Plugins Tauri | `notification` (aviso local do Windows), `single-instance` e `window-state` (locais) |
+| Bibliotecas de rede nas dependências Rust | só as do `tauri-plugin-updater` (`reqwest`/`rustls`), usadas apenas na verificação de atualizações |
+| Plugins Tauri | `notification` (aviso local do Windows), `single-instance` e `window-state` (locais), `updater` (atualizações) |
 | Fontes, scripts e estilos | todos empacotados no app; nenhum CDN |
-| Monitoramento real de conexões do app e de todos os processos da WebView2, por 90 s | **0 conexões externas** |
+| Monitoramento real de conexões do app e de todos os processos da WebView2, por 90 s, com a verificação de atualizações desligada | **0 conexões externas** |
 
 Dados gravados, todos em `%APPDATA%\Axios Cleaner`, que só o próprio usuário acessa:
 
 - `config.json`: categorias marcadas e ajustes.
 - `history.json`: data, tamanho e categorias de cada limpeza.
 - `logs\*.txt`: relatório de cada limpeza, com os caminhos dos arquivos que estavam em uso.
+
+### Atualizações
+
+- Com a opção ligada (padrão), o backend em Rust consulta `https://github.com/YuriTals/axios-cleaner-releases/releases/latest/download/latest.json` ao abrir e a cada 12 h. A requisição não leva dados do usuário.
+- Ao instalar, o arquivo é baixado do mesmo repositório e **só é executado se a assinatura minisign bater com a chave pública embutida no app** (`tauri.conf.json → plugins.updater.pubkey`). Um instalador trocado no caminho, ou publicado por outra pessoa, é recusado.
+- A chave privada fica fora do repositório (`~/.tauri/axios-cleaner-updater.key`). Quem tiver essa chave consegue publicar atualizações que o app aceita: guarde-a com cuidado.
+- Desligar em **Ajustes › Atualizações** volta o app ao modo sem nenhuma conexão.
 
 ### WebView2 (motor de interface da Microsoft)
 

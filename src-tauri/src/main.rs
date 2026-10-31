@@ -10,6 +10,7 @@ mod shell;
 mod startup;
 mod store;
 mod system;
+mod updates;
 
 use commands::{CancelFlags, LargeFilesState, PerfState, SysState};
 use std::sync::{Arc, Mutex};
@@ -29,10 +30,12 @@ fn main() {
     }
     builder
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(SysState(Mutex::new(sys)))
         .manage(PerfState(Mutex::new(perf::Perf::new())))
         .manage(Arc::new(CancelFlags::default()))
         .manage(LargeFilesState::default())
+        .manage(updates::PendingUpdate::default())
         .setup(move |app| {
             if scheduled {
                 shell::run_scheduled_clean(app.handle().clone());
@@ -70,6 +73,8 @@ fn main() {
             commands::schedule_status,
             commands::schedule_set,
             commands::schedule_clear,
+            updates::check_update,
+            updates::install_update,
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o Axios Cleaner");

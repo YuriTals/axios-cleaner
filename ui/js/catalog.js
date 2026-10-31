@@ -1,8 +1,12 @@
 // Dados fixos da interface: telas, tarefas de manutencao, nomes e cores.
 
-export const VERSION = "1.2.1";
+export const VERSION = "1.2.2";
 
-export const DEFAULT_SETTINGS = { closeApps: true, autoScan: true, restorePoint: false, closeToTray: false };
+export const DEFAULT_SETTINGS = { closeApps: true, autoScan: true, restorePoint: false, closeToTray: false, updateCheck: true };
+
+/** Com a verificacao ligada: consulta o GitHub ao abrir e a cada 12 h. */
+export const UPDATE_INTERVAL_MS = 12 * 60 * 60 * 1000;
+export const UPDATE_FIRST_CHECK_MS = 4000;
 
 export const CHANNELS = [
   { id: "home", code: "CORE", t: "Início" },

@@ -162,9 +162,49 @@ export async function saveSchedule() {
   render();
 }
 
+// ---------------------------------------------------------------------------
+// Atualizacoes
+// ---------------------------------------------------------------------------
+
+/** Consulta o GitHub. Na verificacao automatica, abre o aviso uma vez por versao. */
+export async function checkForUpdates({ manual = false } = {}) {
+  if (S.update.checking) return;
+  Object.assign(S.update, { checking: true, error: "" });
+  render();
+  try {
+    S.update.info = await invoke("check_update");
+    const version = S.update.info?.version;
+    if (version && (manual || S.config.updateSeen !== version)) S.update.open = true;
+  } catch (e) {
+    S.update.error = String(e).slice(0, 80);
+  }
+  Object.assign(S.update, { checking: false, checkedAt: new Date() });
+  render();
+}
+
+export function dismissUpdate() {
+  S.update.open = false;
+  S.config.updateSeen = S.update.info?.version;
+  saveConfig();
+}
+
+async function installUpdate() {
+  if (busy()) return;
+  S.run = { kind: "update", action: "update", start: performance.now(), total: 0, done: 0 };
+  render();
+  try {
+    await invoke("install_update"); // o instalador fecha e reabre o app
+  } catch (e) {
+    S.update.error = String(e).slice(0, 80);
+    S.run = null;
+    render();
+  }
+}
+
 /** Disparado quando o usuario termina de segurar um botao de execucao. */
 export function startAction(action) {
-  if (action === "tasks") runMaintenance();
+  if (action === "update") installUpdate();
+  else if (action === "tasks") runMaintenance();
   else if (action === "recycle-big") recycleBigFiles();
   else clean(action);
 }

@@ -32,6 +32,7 @@ export const S = {
   startup: null,
   tasks: { picked: new Set(DEFAULT_TASKS), status: {} },
   schedule: { active: false, msg: "" },
+  update: { info: null, checking: false, error: "", checkedAt: null, open: false },
 };
 
 export const catsOf = (group) => S.cats.filter((c) => c.group === group && c.id !== "recycle");

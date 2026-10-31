@@ -7,7 +7,7 @@
 <p align="center">
   Axios Cleaner keeps your Windows PC light, fast and private.<br>
   It sweeps temporary files, caches and logs from <b>Windows</b>, <b>browsers</b>, <b>apps</b>, <b>games</b> and <b>dev tools</b>,<br>
-  with a futuristic ASCII interface — and <b>nothing ever leaves your machine</b>.
+  with a futuristic ASCII interface — <b>no account, no telemetry, nothing about you leaves your machine</b>.
 </p>
 
 <p align="center">
@@ -16,11 +16,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YuriTals/axios-cleaner/releases/latest"><img src="https://img.shields.io/badge/download-latest-brightgreen?style=flat-square" alt="Download"></a>
+  <a href="https://github.com/YuriTals/axios-cleaner-releases/releases/latest"><img src="https://img.shields.io/badge/download-latest-brightgreen?style=flat-square" alt="Download"></a>
   <img src="https://img.shields.io/badge/platform-Windows-0078D6?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/requirements-Windows%2010%2F11%20%C2%B7%20x64-fa4e49?style=flat-square" alt="Requirements">
   <img src="https://img.shields.io/badge/built%20with-Tauri%202%20%C2%B7%20Rust-FF2448?style=flat-square" alt="Built with Tauri and Rust">
-  <img src="https://img.shields.io/badge/privacy-100%25%20local-7BE38F?style=flat-square" alt="100% local">
+  <img src="https://img.shields.io/badge/privacy-no%20telemetry-7BE38F?style=flat-square" alt="No telemetry">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square" alt="License"></a>
   <a href="https://buymeacoffee.com/axiosdevteam"><img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-axiosdevteam-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=000000" alt="Buy Me A Coffee"></a>
   <a href="https://ko-fi.com/axiosdevteam"><img src="https://img.shields.io/badge/Ko--fi-axiosdevteam-FF5E5B?style=flat-square&logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
@@ -36,6 +36,7 @@
 - **Scheduled cleaning and tray icon:** daily, weekly or monthly runs with no window and a notification at the end, plus an optional "close to tray".
 - **Live telemetry:** CPU, GPU, memory and disk activity as ASCII charts, and every drive as an ASCII bar showing how much is junk.
 - **History and logs:** every cleaning saves a plain-text log you can open from the app.
+- **Signed updates:** the app tells you when a new version is out and installs it with one hold of a button. It only accepts installers signed with the project key, and the check can be turned off.
 
 <p align="center">
   <img src="docs/screenshots/andamento.png" width="420" alt="Cleaning in progress with percentage and time left">
@@ -66,7 +67,7 @@
 
 ## Install
 
-1. Download `Axios Cleaner_<version>_x64-setup.exe` from the [Releases page](https://github.com/YuriTals/axios-cleaner/releases/latest) and run it.
+1. Download `AxiosCleaner_<version>_x64-setup.exe` from the [Releases page](https://github.com/YuriTals/axios-cleaner-releases/releases/latest) and run it.
 2. Open **Axios Cleaner**. It asks for administrator permission, which it needs to clean Windows folders and every user's Temp folder.
 
 The installer is not code-signed, so Windows SmartScreen may warn you the first time. Click **More info › Run anyway**.
@@ -79,9 +80,9 @@ The installer is not code-signed, so Windows SmartScreen may warn you the first 
 
 ## Privacy
 
-Everything happens on your machine. Axios Cleaner has **no account, no telemetry, no analytics and no automatic updates**, and its code makes no network connection at all.
+Everything happens on your machine. Axios Cleaner has **no account, no telemetry and no analytics**. Its only network connection is the update check: at launch and about every 12 hours it asks GitHub for the latest release of [axios-cleaner-releases](https://github.com/YuriTals/axios-cleaner-releases), sending nothing about you. You can turn it off in **Settings › Updates**.
 
-The interface runs on Microsoft's WebView2, which by default contacts Microsoft (automatic sign-in with the Windows account, SmartScreen, remote configuration). The app turns all of that off and points WebView2 at a dead network, so the interface cannot reach the internet. With the app running, 90 seconds of monitoring showed **zero external connections** from the app and its WebView2 processes.
+The interface runs on Microsoft's WebView2, which by default contacts Microsoft (automatic sign-in with the Windows account, SmartScreen, remote configuration). The app turns all of that off and points WebView2 at a dead network, so the interface itself cannot reach the internet; the update check runs in the native backend. With the update check off, 90 seconds of monitoring showed **zero external connections** from the app and its WebView2 processes.
 
 Settings, history and logs are saved only in `%APPDATA%\Axios Cleaner`. The full audit, with trust boundaries, findings and evidence, is in [SECURITY.md](SECURITY.md).
 
@@ -102,6 +103,12 @@ npm run build        # builds the .exe and the installer (src-tauri/target/relea
 npm test             # interface tests (node --test) and Rust tests (cargo test)
 ```
 
+### Publishing an update
+
+1. Bump the version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `package.json` and `ui/js/catalog.js`, then commit and push.
+2. Run `npm run release -- notes.md`. It builds the installer signed with the update key (`~/.tauri/axios-cleaner-updater.key`, kept out of the repository), writes `latest.json` and publishes the release to [axios-cleaner-releases](https://github.com/YuriTals/axios-cleaner-releases) and to this repository.
+3. Installed apps with the update check on will offer the new version.
+
 Development helpers:
 
 - `AXIOS_NO_ELEVATE=1`: builds without the administrator prompt (tests and previews).
@@ -118,6 +125,8 @@ Development helpers:
 | `src-tauri/src/engine.rs`, `rules.rs` | Scanning, safe deletion and the rules of each category |
 | `src-tauri/src/system.rs` | Windows integration: processes, services, maintenance, scheduling, Explorer |
 | `src-tauri/src/shell.rs` | Window, tray icon and scheduled cleaning |
+| `src-tauri/src/updates.rs` | Signed updates from the public releases repository |
+| `scripts/release.mjs` | Signed build + `latest.json` + GitHub releases |
 | `src-tauri/src/files.rs`, `startup.rs`, `perf.rs`, `store.rs` | Large files and space map, startup programs, telemetry, settings and logs |
 | `ui/js/` | Interface modules: `state`, `format`, `run` (execution button), `views/*`, `canvas`, `actions`, `render`, `main` |
 | `tests/ui/` | Interface tests |

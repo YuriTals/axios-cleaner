@@ -1,6 +1,6 @@
 // Ponto de entrada: liga eventos da interface e do backend e inicia o app.
 
-import { CHANNELS, VERSION, taskById } from "./catalog.js";
+import { CHANNELS, UPDATE_FIRST_CHECK_MS, UPDATE_INTERVAL_MS, VERSION, taskById } from "./catalog.js";
 import { S, applyConfig, areas, idsOf, saveConfig, toggle } from "./state.js";
 import { currentWindow, invoke, listen } from "./tauri.js";
 import { hold, holdEnd, holdStart, patchRun, syncRunClasses } from "./run.js";
@@ -65,6 +65,9 @@ const CLICK = {
     S.schedule.msg = "Clique em Salvar para aplicar.";
   },
   schsave: () => { actions.saveSchedule(); return false; },
+  openupdate: () => { S.update.open = true; },
+  closeupdate: () => { actions.dismissUpdate(); },
+  checkupdate: () => { actions.checkForUpdates({ manual: true }); return false; },
 };
 const CLICK_SELECTOR = Object.keys(CLICK).map((k) => `[data-${k}]`).join(",");
 
@@ -206,6 +209,11 @@ async function wireBackendEvents() {
   await listen("recycle-progress", (p) => { if (S.run?.kind === "recycle") S.run.done = p.done; patchRun(); });
   await listen("map-progress", (p) => { S.map.progress = p; if (S.route === "map") render(); });
   await listen("tray-scan", () => { S.route = "home"; actions.scan(); });
+  await listen("update-progress", (p) => {
+    if (S.run?.kind !== "update") return;
+    Object.assign(S.run, { done: p.downloaded, total: p.total || 0 });
+    patchRun();
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -262,9 +270,11 @@ async function boot() {
 }
 
 const DEMO_RUN_ROUTES = ["demo-run", "demo-hover", "demo-confirm"];
+const DEMO_UPDATE = { version: "1.3.0", current: VERSION, date: "2026-11-01", notes: "## Novidades\n- Exemplo de item novo\n- Outro item" };
 
 /** AXIOS_ROUTE=demo-*: estados simulados para capturas de tela (desenvolvimento). */
 async function applyDevRoute(route) {
+  if (route === "demo-update") Object.assign(S.update, { info: DEMO_UPDATE, open: true });
   if (route === "demo-result") actions.showResult({ freed: 4.37 * 1024 ** 3, files: 31240, skipped: 112 });
   if (!DEMO_RUN_ROUTES.includes(route)) return;
   await actions.scan(); // o nucleo mostra dados reais por tras do botao simulado
@@ -272,6 +282,14 @@ async function applyDevRoute(route) {
   if (route === "demo-hover") Object.assign(S, { hoverRun: "all", demoHover: true });
   if (route === "demo-confirm") S.confirmRun = "all";
   render();
+}
+
+/** Verifica ao abrir (com um pequeno atraso) e a cada 12 h, se estiver ligado. */
+function scheduleUpdateChecks(route) {
+  if (route?.startsWith("demo-")) return;
+  const check = () => { if (S.settings.updateCheck && S.run?.kind !== "update") actions.checkForUpdates(); };
+  setTimeout(check, UPDATE_FIRST_CHECK_MS);
+  setInterval(check, UPDATE_INTERVAL_MS);
 }
 
 async function init() {
@@ -299,6 +317,7 @@ async function init() {
   setInterval(() => { patchRun(); tickSpinners(true); }, TICK_INTERVAL_MS);
   if (route?.startsWith("demo-")) applyDevRoute(route);
   else if (S.settings.autoScan) actions.scan();
+  scheduleUpdateChecks(route);
 }
 
 init();

@@ -9,6 +9,7 @@ import { viewHome, telemetryHtml, disksHtml } from "./views/home.js";
 import { viewGroup, viewRecycle } from "./views/cleaning.js";
 import { viewBig, viewMap, viewStartup, viewTasks } from "./views/tools.js";
 import { viewHistory, viewSettings } from "./views/app.js";
+import { updateBadge, updateModalHtml } from "./views/update.js";
 
 const VIEWS = {
   home: viewHome,
@@ -54,6 +55,14 @@ function renderChannels() {
     </button>`).join("") + `<div class="nav-foot">v${VERSION}\n${S.admin ? "ADMIN" : "USER"}</div>`;
 }
 
+function renderUpdate() {
+  const pill = document.querySelector("#updPill");
+  const badge = updateBadge();
+  pill.hidden = !badge;
+  pill.textContent = badge;
+  document.querySelector("#modal").innerHTML = updateModalHtml();
+}
+
 function renderStatus() {
   document.querySelector("#statusLed").className = "ok-led" + (S.run ? " busy" : S.admin ? "" : " warn");
   document.querySelector("#statusText").textContent = statusText();
@@ -75,6 +84,7 @@ export function render() {
     screen.querySelectorAll(".ph-t, .hhead > .mono:first-child").forEach(scramble);
   }
   tickSpinners();
+  renderUpdate();
   renderStatus();
 }
 

@@ -1,14 +1,15 @@
 {
   "name": "axios-cleaner",
   "private": true,
-  "version": "1.2.1",
+  "version": "1.2.2",
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
     "icon": "tauri icon assets/icon.svg",
     "test": "npm run test:ui && npm run test:rust",
     "test:ui": "node --test \"tests/ui/*.test.js\"",
-    "test:rust": "cd src-tauri && set AXIOS_NO_ELEVATE=1&& cargo test --release"
+    "test:rust": "cd src-tauri && set AXIOS_NO_ELEVATE=1&& cargo test --release",
+    "release": "node scripts/release.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0"

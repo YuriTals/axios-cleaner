@@ -12,9 +12,10 @@
       <div class="brand" data-tauri-drag-region>
         <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12.00" cy="2.50" r="1.6" fill="#FF2448" fill-opacity="0.35"/><circle cx="16.75" cy="3.77" r="1.6" fill="#FF2448" fill-opacity="0.40"/><circle cx="20.23" cy="7.25" r="1.6" fill="#FF2448" fill-opacity="0.46"/><circle cx="21.50" cy="12.00" r="1.6" fill="#FF2448" fill-opacity="0.51"/><circle cx="20.23" cy="16.75" r="1.6" fill="#FF2448" fill-opacity="0.57"/><circle cx="16.75" cy="20.23" r="1.6" fill="#FF2448" fill-opacity="0.62"/><circle cx="12.00" cy="21.50" r="1.6" fill="#FF2448" fill-opacity="0.68"/><circle cx="7.25" cy="20.23" r="1.6" fill="#FF2448" fill-opacity="0.73"/><circle cx="3.77" cy="16.75" r="1.6" fill="#FF2448" fill-opacity="0.78"/><circle cx="2.50" cy="12.00" r="1.6" fill="#FF2448" fill-opacity="0.84"/><circle cx="3.77" cy="7.25" r="1.6" fill="#FF2448" fill-opacity="0.89"/><circle cx="7.25" cy="3.77" r="1.6" fill="#FF2448" fill-opacity="0.95"/><rect x="8" y="8.899999999999999" width="8" height="1.8" rx="0.9" fill="#EDEDED"/><rect x="8" y="13.3" width="8" height="1.8" rx="0.9" fill="#EDEDED"/></svg>
         <span class="mono" data-tauri-drag-region>Axios<b>//</b>Cleaner</span>
-        <span class="ver mono" data-tauri-drag-region>v1.2.1</span>
+        <span class="ver mono" data-tauri-drag-region>v1.2.2</span>
       </div>
       <div class="readout mono" id="readout" data-tauri-drag-region>sys :: aguardando sensores</div>
+      <button class="upd-pill mono" id="updPill" data-openupdate hidden></button>
       <div class="status mono" data-tauri-drag-region>
         <span class="ok-led" id="statusLed"></span>
         <span id="statusText">Iniciando</span>
@@ -33,6 +34,7 @@
     </div>
   </div>
 
+  <div id="modal"></div>
   <div class="boot" id="boot" aria-hidden="true"></div>
   <script type="module" src="js/main.js"></script>
 </body>
