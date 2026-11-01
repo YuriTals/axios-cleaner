@@ -1,6 +1,6 @@
 // Dados fixos da interface: telas, tarefas de manutencao, nomes e cores.
 
-export const VERSION = "1.2.3";
+export const VERSION = "1.2.4";
 
 export const DEFAULT_SETTINGS = { closeApps: true, autoScan: true, restorePoint: false, closeToTray: false, confirmClose: true, updateCheck: true, protectRecent: true, zoom: 1 };
 

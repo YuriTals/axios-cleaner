@@ -28,13 +28,14 @@
 
 ## Highlights
 
-- **34 cleaning categories in 6 areas:** System, Browsers, Apps, Games & GPU, Dev and Privacy. Every category can be turned off, and you can see where the files are and which are the biggest before cleaning.
+- **37 cleaning categories in 6 areas, plus your own folders:** System, Browsers, Apps, Games & GPU, Dev and Privacy. Every category can be turned off, and you can see where the files are and which are the biggest before cleaning. **Simulate without deleting** lists every file that would go, with the total, and touches nothing.
 - **Live progress inside the button:** hold to start; while it runs the button shows the real %, the current step and the time left. Hover to **cancel**, and the button asks for confirmation right inside it.
-- **Safe by design:** shortcuts to folders (junctions/symlinks) are never followed, files in use are skipped and listed in the log, and only empty folders are removed. Browsing history, passwords, cookies, bookmarks and documents are never touched.
-- **Polite app closing:** before cleaning, it lists the open apps that hold files (browsers, Discord, Teams, OneDrive) and you pick which ones may close. They are asked to close (like clicking X) and are only forced after 8 s. OneDrive reopens when the cleaning ends. Windows Update is paused and resumed automatically.
-- **Tools:** large files finder (sends to the Recycle Bin, so it can be undone), ASCII space map per folder or drive, reversible startup programs manager, and Windows maintenance (DNS, Explorer and thumbnail cache, TRIM, DISM, `sfc`, restore point).
+- **Safe by design:** shortcuts to folders (junctions/symlinks) are never followed, files in use are skipped and listed in the log, and only empty folders are removed. Temp files from the last 24 h are protected by default, and a **Never delete** list keeps any file or folder you choose. Browsing history, passwords, cookies, bookmarks and documents are never touched.
+- **Polite app closing:** before cleaning, it lists the open apps that hold files (browsers, Discord, Teams, WhatsApp, Telegram, OneDrive) and you pick which ones may close. They are asked to close (like clicking X) and are only forced after 8 s. OneDrive reopens when the cleaning ends. Windows Update is paused and resumed automatically.
+- **Tools:** large files and **duplicate files** finders (they send to the Recycle Bin, so it can be undone), ASCII space map per folder or drive, reversible startup programs manager, and Windows maintenance (DNS, Explorer and thumbnail cache, TRIM, DISM, `sfc`, restore point).
 - **Scheduled cleaning and tray icon:** daily, weekly or monthly runs with no window and a notification at the end, plus an optional "close to tray". Quitting asks first and safely cancels any task in progress.
-- **Live telemetry:** CPU, GPU, memory and disk activity as ASCII charts, and every drive as an ASCII bar showing how much is junk.
+- **Portuguese or English, three interface sizes:** the language follows Windows on first launch; Ctrl + / Ctrl − change the size.
+- **Live telemetry:** CPU, GPU, memory and disk activity as ASCII charts, and every drive as an ASCII bar showing how much is junk. Caches over 5 GB get a warning with a tip, like limiting the GPU shader cache.
 - **History and logs:** every cleaning saves a plain-text log you can open from the app.
 - **Signed updates:** the app tells you when a new version is out and installs it with one hold of a button, or you can leave it for later or skip that version. It only accepts installers signed with the project key, and the check can be turned off.
 
@@ -58,7 +59,7 @@
 |---|---|
 | **System** | Recycle Bin · users' Temp folders · `C:\Windows\Temp` · Windows logs (CBS, Panther, MeasuredBoot, WinSAT, Windows Update, .NET, Defender) · program crash dumps · Explorer and Internet Explorer caches · OneDrive logs · Windows Update download cache · Delivery Optimization · Windows Error Reporting and minidumps |
 | **Browsers** | Microsoft Edge · Google Chrome · Mozilla Firefox · Brave · Vivaldi · Opera / Opera GX — cache only, in every profile |
-| **Apps** | Spotify · Adobe Media Cache · VMware · TeamViewer · Discord · Microsoft Teams · Slack · Visual Studio Code · Zoom · Microsoft Store apps |
+| **Apps** | Spotify · Adobe Media Cache · VMware · TeamViewer · Discord · Microsoft Teams · Slack · Visual Studio Code · WhatsApp · Telegram · Microsoft Office (unchecked by default, never closed) · Zoom · Microsoft Store apps |
 | **Games & GPU** | Shader caches (DirectX, NVIDIA, AMD, Intel) · Steam · Epic Games Launcher — games and saves stay |
 | **Dev** | npm, Yarn and pip · NuGet, Gradle and Go · Cargo (Rust) — downloaded again when needed |
 | **Privacy** | Recent files list · taskbar jump lists — the files themselves stay |
@@ -112,7 +113,7 @@ npm test             # interface tests (node --test) and Rust tests (cargo test)
 Development helpers:
 
 - `AXIOS_NO_ELEVATE=1`: builds without the administrator prompt (tests and previews).
-- `AXIOS_ROUTE=<screen>`: opens straight on a screen (`home`, `system`, `browsers`, `apps`, `games`, `dev`, `privacy`, `recycle`, `big`, `map`, `startup`, `tasks`, `history`, `settings`). `demo-run`, `demo-hover`, `demo-confirm` and `demo-result` simulate the running button and the result screen.
+- `AXIOS_ROUTE=<screen>`: opens straight on a screen (`home`, `system`, `browsers`, `apps`, `games`, `dev`, `privacy`, `recycle`, `big`, `dups`, `map`, `startup`, `tasks`, `history`, `settings`). `demo-run`, `demo-hover`, `demo-confirm` and `demo-result` simulate the running button and the result screen.
 - `axios-cleaner.exe --auto`: the scheduled cleaning mode.
 
 ### Project structure
@@ -122,13 +123,13 @@ Development helpers:
 | `src-tauri/src/main.rs` | App setup: plugins, state, window or scheduled mode |
 | `src-tauri/src/commands.rs` | Commands called by the interface |
 | `src-tauri/src/pipeline.rs` | One cleaning: restore point → close apps → pause services → clean → log |
-| `src-tauri/src/engine.rs`, `rules.rs` | Scanning, safe deletion and the rules of each category |
+| `src-tauri/src/engine.rs`, `rules.rs`, `rules_en.rs` | Scanning, safe deletion, exclusions and the rules of each category (with English names) |
 | `src-tauri/src/system.rs` | Windows integration: processes, services, maintenance, scheduling, Explorer |
 | `src-tauri/src/shell.rs` | Window, tray icon and scheduled cleaning |
 | `src-tauri/src/updates.rs` | Signed updates from this repository's releases |
-| `scripts/release.mjs` | Signed build + `latest.json` + GitHub releases |
-| `src-tauri/src/files.rs`, `startup.rs`, `perf.rs`, `store.rs` | Large files and space map, startup programs, telemetry, settings and logs |
-| `ui/js/` | Interface modules: `state`, `format`, `run` (execution button), `views/*`, `canvas`, `actions`, `render`, `main` |
+| `scripts/release.mjs`, `bump.mjs` | Signed build + `latest.json` + GitHub releases; version bump in every file |
+| `src-tauri/src/files.rs`, `startup.rs`, `perf.rs`, `store.rs` | Large and duplicate files, space map, startup programs, telemetry, settings and logs |
+| `ui/js/` | Interface modules: `state`, `format`, `run` (execution button), `views/*`, `canvas`, `actions`, `render`, `main`, `i18n` and `lang/en.js` (translations) |
 | `tests/ui/` | Interface tests |
 
 ## License

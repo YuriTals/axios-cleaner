@@ -28,13 +28,14 @@
 
 ## Destaques
 
-- **34 categorias de limpeza em 6 áreas:** Sistema, Navegadores, Apps, Jogos e GPU, Dev e Privacidade. Qualquer categoria pode ser desligada, e dá para ver onde estão os arquivos e quais são os maiores antes de limpar.
+- **37 categorias de limpeza em 6 áreas, mais as suas pastas:** Sistema, Navegadores, Apps, Jogos e GPU, Dev e Privacidade. Qualquer categoria pode ser desligada, e dá para ver onde estão os arquivos e quais são os maiores antes de limpar. **Simular sem apagar** lista cada arquivo que sairia, com o total, sem tocar em nada.
 - **Progresso ao vivo dentro do botão:** segure para iniciar; enquanto roda, o botão mostra o % real, a etapa atual e o tempo restante. Passe o mouse para **cancelar**, e o botão pede confirmação dentro dele mesmo.
-- **Seguro por padrão:** atalhos de pasta (junctions/symlinks) nunca são seguidos, arquivos em uso são pulados e listados no log, e só pastas vazias são removidas. Histórico, senhas, cookies, favoritos e documentos nunca são tocados.
-- **Fecha os apps com educação:** antes de limpar, mostra os apps abertos que travam arquivos (navegadores, Discord, Teams, OneDrive) e você escolhe quais podem fechar. Eles recebem um pedido para fechar (como clicar no X) e só são forçados depois de 8 s. O OneDrive é reaberto no fim, e o Windows Update é pausado e religado sozinho.
-- **Ferramentas:** busca de arquivos grandes (vão para a Lixeira, dá para desfazer), mapa de espaço em ASCII por pasta ou disco, gerenciador reversível de programas na inicialização e manutenção do Windows (DNS, Explorer e cache de miniaturas, TRIM, DISM, `sfc` e ponto de restauração).
+- **Seguro por padrão:** atalhos de pasta (junctions/symlinks) nunca são seguidos, arquivos em uso são pulados e listados no log, e só pastas vazias são removidas. Histórico, senhas, cookies, favoritos e documentos nunca são tocados. Temporários das últimas 24 h ficam protegidos por padrão, e a lista **Nunca apagar** guarda qualquer arquivo ou pasta que você escolher.
+- **Fecha os apps com educação:** antes de limpar, mostra os apps abertos que travam arquivos (navegadores, Discord, Teams, WhatsApp, Telegram, OneDrive) e você escolhe quais podem fechar. Eles recebem um pedido para fechar (como clicar no X) e só são forçados depois de 8 s. O OneDrive é reaberto no fim, e o Windows Update é pausado e religado sozinho.
+- **Ferramentas:** busca de arquivos grandes e de **arquivos duplicados** (vão para a Lixeira, dá para desfazer), mapa de espaço em ASCII por pasta ou disco, gerenciador reversível de programas na inicialização e manutenção do Windows (DNS, Explorer e cache de miniaturas, TRIM, DISM, `sfc` e ponto de restauração).
 - **Limpeza agendada e ícone na bandeja:** diária, semanal ou mensal, sem abrir janela e com aviso no fim, além da opção "fechar para a bandeja". Sair pergunta antes e cancela com segurança o que estiver rodando.
-- **Telemetria ao vivo:** CPU, GPU, memória e atividade de disco em gráficos ASCII, e cada unidade como uma barra ASCII mostrando quanto é lixo.
+- **Português ou inglês, três tamanhos de interface:** na primeira vez vale o idioma do Windows; Ctrl + / Ctrl − mudam o tamanho.
+- **Telemetria ao vivo:** CPU, GPU, memória e atividade de disco em gráficos ASCII, e cada unidade como uma barra ASCII mostrando quanto é lixo. Caches acima de 5 GB ganham um aviso com dica, como limitar o cache de shaders da placa de vídeo.
 - **Histórico e logs:** cada limpeza gera um log em texto que você abre pelo próprio app.
 - **Atualizações assinadas:** o app avisa quando sai versão nova e instala segurando um botão, ou você deixa para depois ou pula aquela versão. Ele só aceita instaladores assinados com a chave do projeto, e a verificação pode ser desligada.
 
@@ -58,7 +59,7 @@
 |---|---|
 | **Sistema** | Lixeira · pastas Temp dos usuários · `C:\Windows\Temp` · logs do Windows (CBS, Panther, MeasuredBoot, WinSAT, Windows Update, .NET, Defender) · dumps de programas · caches do Explorer e do Internet Explorer · logs do OneDrive · cache do Windows Update · Otimização de Entrega · relatórios de erro e minidumps |
 | **Navegadores** | Microsoft Edge · Google Chrome · Mozilla Firefox · Brave · Vivaldi · Opera / Opera GX — só cache, em todos os perfis |
-| **Apps** | Spotify · Adobe Media Cache · VMware · TeamViewer · Discord · Microsoft Teams · Slack · Visual Studio Code · Zoom · apps da Microsoft Store |
+| **Apps** | Spotify · Adobe Media Cache · VMware · TeamViewer · Discord · Microsoft Teams · Slack · Visual Studio Code · WhatsApp · Telegram · Microsoft Office (desmarcado por padrão, nunca é fechado) · Zoom · apps da Microsoft Store |
 | **Jogos e GPU** | Cache de shaders (DirectX, NVIDIA, AMD, Intel) · Steam · Epic Games Launcher — jogos e saves ficam |
 | **Dev** | npm, Yarn e pip · NuGet, Gradle e Go · Cargo (Rust) — são baixados de novo quando precisar |
 | **Privacidade** | Lista de arquivos recentes · listas de atalhos da barra de tarefas — os arquivos em si ficam |
@@ -112,7 +113,7 @@ npm test             # testes da interface (node --test) e do Rust (cargo test)
 Ajudas de desenvolvimento:
 
 - `AXIOS_NO_ELEVATE=1`: compila sem o pedido de administrador (testes e preview).
-- `AXIOS_ROUTE=<tela>`: abre direto numa tela (`home`, `system`, `browsers`, `apps`, `games`, `dev`, `privacy`, `recycle`, `big`, `map`, `startup`, `tasks`, `history`, `settings`). `demo-run`, `demo-hover`, `demo-confirm` e `demo-result` simulam o botão rodando e a tela de resultado.
+- `AXIOS_ROUTE=<tela>`: abre direto numa tela (`home`, `system`, `browsers`, `apps`, `games`, `dev`, `privacy`, `recycle`, `big`, `dups`, `map`, `startup`, `tasks`, `history`, `settings`). `demo-run`, `demo-hover`, `demo-confirm` e `demo-result` simulam o botão rodando e a tela de resultado.
 - `axios-cleaner.exe --auto`: modo da limpeza agendada.
 
 ### Estrutura do projeto
@@ -122,13 +123,13 @@ Ajudas de desenvolvimento:
 | `src-tauri/src/main.rs` | Monta o app: plugins, estado, janela ou modo agendado |
 | `src-tauri/src/commands.rs` | Comandos chamados pela interface |
 | `src-tauri/src/pipeline.rs` | Uma limpeza: restauração → fechar apps → pausar serviços → limpar → log |
-| `src-tauri/src/engine.rs`, `rules.rs` | Varredura, exclusão segura e as regras de cada categoria |
+| `src-tauri/src/engine.rs`, `rules.rs`, `rules_en.rs` | Varredura, exclusão segura, exclusões do usuário e as regras de cada categoria (com os nomes em inglês) |
 | `src-tauri/src/system.rs` | Integração com o Windows: processos, serviços, manutenção, agendamento, Explorer |
 | `src-tauri/src/shell.rs` | Janela, ícone na bandeja e limpeza agendada |
 | `src-tauri/src/updates.rs` | Atualizações assinadas pelas releases deste repositório |
-| `scripts/release.mjs` | Build assinado + `latest.json` + releases no GitHub |
-| `src-tauri/src/files.rs`, `startup.rs`, `perf.rs`, `store.rs` | Arquivos grandes e mapa, inicialização, telemetria, configurações e logs |
-| `ui/js/` | Módulos da interface: `state`, `format`, `run` (botão de execução), `views/*`, `canvas`, `actions`, `render`, `main` |
+| `scripts/release.mjs`, `bump.mjs` | Build assinado + `latest.json` + releases no GitHub; troca da versão em todos os arquivos |
+| `src-tauri/src/files.rs`, `startup.rs`, `perf.rs`, `store.rs` | Arquivos grandes e duplicados, mapa, inicialização, telemetria, configurações e logs |
+| `ui/js/` | Módulos da interface: `state`, `format`, `run` (botão de execução), `views/*`, `canvas`, `actions`, `render`, `main`, `i18n` e `lang/en.js` (traduções) |
 | `tests/ui/` | Testes da interface |
 
 ## Licença
