@@ -42,6 +42,14 @@ pub struct Category {
     pub default_on: bool,
 }
 
+impl Category {
+    /// Pastas Temp, onde instaladores e programas abertos guardam arquivos
+    /// em uso: os recentes podem ser protegidos (ver `engine::Policy`).
+    pub fn holds_temp_files(&self) -> bool {
+        matches!(self.id, "usertemp" | "wintemp")
+    }
+}
+
 const fn r(base: &'static str, pattern: &'static str) -> Rule {
     Rule { base, pattern, recursive: true, prune: false }
 }

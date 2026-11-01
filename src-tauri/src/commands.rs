@@ -103,7 +103,7 @@ pub async fn scan(app: AppHandle) -> Result<Vec<engine::ScanItem>, String> {
         let running = |names: &[&str]| -> Vec<String> {
             names.iter().filter(|n| procs.processes_by_exact_name(n.as_ref()).next().is_some()).map(|n| n.to_string()).collect()
         };
-        engine::scan(&running, |item| {
+        engine::scan(&engine::Policy::load(), &running, |item| {
             let _ = app.emit("scan-progress", item.clone());
         })
     })
@@ -112,7 +112,7 @@ pub async fn scan(app: AppHandle) -> Result<Vec<engine::ScanItem>, String> {
 
 #[tauri::command]
 pub async fn details(id: String) -> Result<engine::Details, String> {
-    blocking(move || engine::find(&id).map(engine::details).ok_or_else(|| "categoria desconhecida".to_string())).await?
+    blocking(move || engine::find(&id).map(|c| engine::details(c, &engine::Policy::load())).ok_or_else(|| "categoria desconhecida".to_string())).await?
 }
 
 #[tauri::command]

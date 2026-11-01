@@ -2,7 +2,10 @@
 
 export const VERSION = "1.2.3";
 
-export const DEFAULT_SETTINGS = { closeApps: true, autoScan: true, restorePoint: false, closeToTray: false, confirmClose: true, updateCheck: true };
+export const DEFAULT_SETTINGS = { closeApps: true, autoScan: true, restorePoint: false, closeToTray: false, confirmClose: true, updateCheck: true, protectRecent: true };
+
+/** Ajustes que mudam o que a varredura conta: trocar um deles analisa de novo. */
+export const RESCAN_SETTINGS = ["protectRecent"];
 
 /** Com a verificacao ligada: consulta o GitHub ao abrir e a cada 12 h. */
 export const UPDATE_INTERVAL_MS = 12 * 60 * 60 * 1000;

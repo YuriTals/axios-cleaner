@@ -61,8 +61,52 @@ function renderUpdate() {
   const badge = updateBadge();
   pill.hidden = !badge;
   pill.textContent = badge;
-  document.querySelector("#modal").innerHTML = quitModalHtml() || appsModalHtml() || updateModalHtml();
 }
+
+// ---------------------------------------------------------------------------
+// Janela de pergunta (sair, fechar apps, atualizacao) e o foco do teclado
+// ---------------------------------------------------------------------------
+
+let modalHtml = "";
+let focusBeforeModal = null;
+
+/** Seletor que reencontra o elemento depois de recriar o HTML (pelo 1o atributo data-*). */
+function selectorFor(el) {
+  const attr = el && [...el.attributes].find((a) => a.name.startsWith("data-"));
+  return attr ? `[${attr.name}="${CSS.escape(attr.value)}"]` : null;
+}
+
+/** Recria a janela so quando ela muda, mantendo o foco no mesmo botao. */
+function renderModal() {
+  const html = quitModalHtml() || appsModalHtml() || updateModalHtml();
+  if (html === modalHtml) return;
+  const box = document.querySelector("#modal");
+  const opening = !modalHtml;
+  const focused = box.contains(document.activeElement) ? selectorFor(document.activeElement) : null;
+  if (opening) focusBeforeModal = document.activeElement;
+  modalHtml = html;
+  box.innerHTML = html;
+  if (!html) {
+    focusBeforeModal?.focus?.();
+    focusBeforeModal = null;
+    return;
+  }
+  const target = (focused && box.querySelector(focused)) || (opening || focused ? box.querySelector("[data-autofocus]") : null);
+  target?.focus();
+}
+
+/** Tab e Shift+Tab circulam dentro da janela aberta, sem ir para a tela de tras. */
+export function trapModalFocus(e) {
+  const box = document.querySelector("#modal");
+  const items = [...box.querySelectorAll("button:not([disabled]), [href], input, select")];
+  if (e.key !== "Tab" || !items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  const inside = box.contains(document.activeElement);
+  if (e.shiftKey && (document.activeElement === first || !inside)) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && (document.activeElement === last || !inside)) { e.preventDefault(); first.focus(); }
+}
+
+export const modalOpen = () => !!modalHtml;
 
 function renderStatus() {
   document.querySelector("#statusLed").className = "ok-led" + (S.run ? " busy" : S.admin ? "" : " warn");
@@ -86,6 +130,7 @@ export function render() {
   }
   tickSpinners();
   renderUpdate();
+  renderModal();
   renderStatus();
 }
 

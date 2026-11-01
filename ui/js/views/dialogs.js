@@ -36,7 +36,7 @@ export function quitModalHtml() {
   const actions = S.quit === "closing"
     ? `<div class="hint"><span class="spinner"></span> ${S.run?.cancel ? "Cancelando a tarefa e fechando" : "Fechando"}</div>`
     : `<div class="ask-btns">
-        <button class="btn" data-quit="no">Ficar</button>
+        <button class="btn" data-quit="no" data-autofocus>Ficar</button>
         <button class="btn yes" data-quit="yes">Fechar</button>
       </div>
       <div class="hint">Esc para ficar · desative em Ajustes</div>`;
@@ -65,7 +65,7 @@ export function appsModalHtml() {
     <p class="ask-p muted">Eles recebem o pedido de fechar como se você clicasse no X, e só são forçados se não fecharem em 8 s. O OneDrive é reaberto no final.</p>
     <div class="upd-act">
       <div class="ask-btns">
-        <button class="btn" data-apps="cancel">Cancelar</button>
+        <button class="btn" data-apps="cancel" data-autofocus>Cancelar</button>
         <button class="btn yes" data-apps="go">${go}</button>
       </div>
       <div class="hint">Nos apps que ficarem abertos, os arquivos em uso são pulados · Esc cancela</div>

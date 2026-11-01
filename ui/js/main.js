@@ -1,10 +1,10 @@
 // Ponto de entrada: liga eventos da interface e do backend e inicia o app.
 
-import { CHANNELS, UPDATE_FIRST_CHECK_MS, UPDATE_INTERVAL_MS, VERSION, taskById } from "./catalog.js";
+import { CHANNELS, RESCAN_SETTINGS, UPDATE_FIRST_CHECK_MS, UPDATE_INTERVAL_MS, VERSION, taskById } from "./catalog.js";
 import { S, applyConfig, areas, idsOf, saveConfig, toggle } from "./state.js";
 import { currentWindow, invoke, listen } from "./tauri.js";
 import { hold, holdEnd, holdStart, patchRun, syncRunClasses } from "./run.js";
-import { render, tickSpinners, updateLive } from "./render.js";
+import { modalOpen, render, tickSpinners, trapModalFocus, updateLive } from "./render.js";
 import { coreAreaAt, mapHooks, startAnimation } from "./canvas.js";
 import * as actions from "./actions.js";
 import { currentSchedule } from "./views/app.js";
@@ -51,7 +51,11 @@ const CLICK = {
   logs: () => { ignoreErrors(invoke("open_logs_folder")); return false; },
   cancel: (job) => { invoke("cancel", { job }); return false; },
   disk: (view) => { S.diskView = view; },
-  setting: (key) => { S.settings[key] = !S.settings[key]; saveConfig(); },
+  setting: (key) => {
+    S.settings[key] = !S.settings[key];
+    const saved = saveConfig();
+    if (RESCAN_SETTINGS.includes(key)) saved.then(() => actions.scan());
+  },
   clearhistory: () => { invoke("clear_history"); S.history = []; },
   pick: (path) => { toggle(S.big.picked, path); S.big.result = null; },
   bigmin: (mb) => { S.big.min = +mb; actions.loadBigFiles(); return false; },
@@ -127,6 +131,15 @@ function trackCoreHover(e) {
   if (core) core.style.cursor = overCore && k >= 0 ? "pointer" : "";
 }
 
+/** Esc escolhe sempre a opcao segura da janela aberta. */
+function closeModalWithEsc() {
+  if (S.quit === "ask") S.quit = null;
+  else if (S.askApps) return actions.answerApps("cancel");
+  else if (S.update.open && S.run?.kind !== "update") actions.dismissUpdate(false);
+  else return;
+  render();
+}
+
 function wireInput() {
   document.addEventListener("click", onClick);
   document.addEventListener("pointerover", trackRunHover);
@@ -153,10 +166,8 @@ function wireInput() {
       e.preventDefault();
       if (!e.repeat) holdStart(btn, actions.startAction);
     }
-    if (e.key === "Escape") {
-      if (S.quit === "ask") { S.quit = null; render(); }
-      else if (S.askApps) actions.answerApps("cancel");
-    }
+    if (modalOpen()) trapModalFocus(e);
+    if (e.key === "Escape") closeModalWithEsc();
     // Sem recarregar a janela, para parecer app nativo.
     if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) e.preventDefault();
   });

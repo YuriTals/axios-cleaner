@@ -14,7 +14,7 @@ use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
-use std::time::Instant;
+use std::time::{Duration, Instant, SystemTime};
 
 const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
 
@@ -217,12 +217,78 @@ fn walk(dir: &Path, recursive: bool, stop: &AtomicBool, f: &mut dyn FnMut(PathBu
     }
 }
 
-/// Chama `f(base, arquivo, tamanho)` para cada arquivo que a regra cobre.
-fn for_each_match(rule: &Rule, users: &[PathBuf], stop: &AtomicBool, f: &mut dyn FnMut(&Path, PathBuf, &fs::Metadata)) {
+// ---------------------------------------------------------------------------
+// Politica: o que o usuario pediu para nunca apagar
+// ---------------------------------------------------------------------------
+
+/// Idade minima dos arquivos das pastas Temp quando "proteger recentes" esta ligado.
+pub const RECENT_TEMP_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+
+/// Filtros aplicados na varredura e na limpeza, lidos da configuracao.
+#[derive(Default)]
+pub struct Policy {
+    /// Arquivos das pastas Temp mais novos que isso ficam.
+    pub min_temp_age: Option<Duration>,
+    /// Pastas e arquivos que nunca sao apagados (minusculas, sem `\` no fim).
+    pub exclude: Vec<String>,
+}
+
+pub fn normalize_path(p: &str) -> String {
+    p.trim().trim_end_matches(['\\', '/']).replace('/', "\\").to_lowercase()
+}
+
+impl Policy {
+    pub fn from_config(cfg: &serde_json::Value) -> Self {
+        let protect = cfg["settings"]["protectRecent"].as_bool().unwrap_or(true);
+        let exclude = cfg["exclude"]
+            .as_array()
+            .map(|a| a.iter().filter_map(|v| v.as_str()).map(normalize_path).filter(|p| !p.is_empty()).collect())
+            .unwrap_or_default();
+        Policy { min_temp_age: protect.then_some(RECENT_TEMP_AGE), exclude }
+    }
+
+    pub fn load() -> Self {
+        Self::from_config(&crate::store::load_config())
+    }
+
+    pub fn is_excluded(&self, path: &Path) -> bool {
+        if self.exclude.is_empty() {
+            return false;
+        }
+        let p = path.to_string_lossy().to_lowercase();
+        self.exclude.iter().any(|ex| p == *ex || (p.starts_with(ex.as_str()) && p.as_bytes().get(ex.len()) == Some(&b'\\')))
+    }
+
+    /// O arquivo fica de fora desta categoria?
+    fn keeps(&self, cat: &Category, path: &Path, md: &fs::Metadata) -> bool {
+        if let Some(min) = self.min_temp_age.filter(|_| cat.holds_temp_files()) {
+            if is_newer_than(md, min) {
+                return true;
+            }
+        }
+        self.is_excluded(path)
+    }
+}
+
+/// Criado ou alterado ha menos de `age` (datas ilegiveis contam como antigas).
+fn is_newer_than(md: &fs::Metadata, age: Duration) -> bool {
+    let newest = [md.modified().ok(), md.created().ok()].into_iter().flatten().max();
+    newest.and_then(|t| SystemTime::now().duration_since(t).ok()).is_some_and(|elapsed| elapsed < age)
+}
+
+/// Chama `f(base, arquivo, tamanho)` para cada arquivo que a regra cobre e a politica permite.
+fn for_each_match(
+    cat: &Category,
+    rule: &Rule,
+    users: &[PathBuf],
+    policy: &Policy,
+    stop: &AtomicBool,
+    f: &mut dyn FnMut(&Path, PathBuf, &fs::Metadata),
+) {
     for base in expand(rule.base, users) {
         walk(&base, rule.recursive, stop, &mut |path, md| {
             let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-            if matches(rule.pattern, &name) {
+            if matches(rule.pattern, &name) && !policy.keeps(cat, &path, md) {
                 f(&base, path, md);
             }
         });
@@ -253,7 +319,7 @@ pub fn recycle_bin_info() -> (u64, u64) {
 
 /// Varre todas as categorias. Um arquivo coberto por mais de uma categoria
 /// e contado so na primeira, para o total nao ficar inflado.
-pub fn scan(running: &dyn Fn(&[&str]) -> Vec<String>, mut on_item: impl FnMut(&ScanItem)) -> Vec<ScanItem> {
+pub fn scan(policy: &Policy, running: &dyn Fn(&[&str]) -> Vec<String>, mut on_item: impl FnMut(&ScanItem)) -> Vec<ScanItem> {
     let users = user_dirs();
     let mut seen: HashSet<PathBuf> = HashSet::new();
     let mut out = Vec::new();
@@ -263,7 +329,7 @@ pub fn scan(running: &dyn Fn(&[&str]) -> Vec<String>, mut on_item: impl FnMut(&S
             Kind::RecycleBin => (bytes, files) = recycle_bin_info(),
             Kind::Files => {
                 for rule in &cat.rules {
-                    for_each_match(rule, &users, &NEVER, &mut |_, path, md| {
+                    for_each_match(cat, rule, &users, policy, &NEVER, &mut |_, path, md| {
                         if seen.insert(path) {
                             bytes += md.len();
                             files += 1;
@@ -307,12 +373,12 @@ const LARGEST_SHOWN: usize = 15;
 /// A lista parcial e podada quando passa deste tamanho (evita guardar milhares).
 const LARGEST_BUFFER: usize = 400;
 
-pub fn details(cat: &Category) -> Details {
+pub fn details(cat: &Category, policy: &Policy) -> Details {
     let users = user_dirs();
     let mut locs: HashMap<PathBuf, (u64, u64)> = HashMap::new();
     let mut largest: Vec<BigFile> = Vec::new();
     for rule in &cat.rules {
-        for_each_match(rule, &users, &NEVER, &mut |base, path, md| {
+        for_each_match(cat, rule, &users, policy, &NEVER, &mut |base, path, md| {
             let e = locs.entry(base.to_path_buf()).or_default();
             e.0 += md.len();
             e.1 += 1;
@@ -369,14 +435,17 @@ fn delete_file(path: &Path) -> bool {
     }
 }
 
-/// Remove subpastas vazias (de baixo para cima), mantendo `dir`.
-fn prune_empty(dir: &Path) {
+/// Remove subpastas vazias (de baixo para cima), mantendo `dir` e as pastas excluidas.
+fn prune_empty(dir: &Path, policy: &Policy) {
     let Ok(rd) = fs::read_dir(dir) else { return };
     for entry in rd.flatten() {
         let Ok(md) = entry.metadata() else { continue };
         if md.is_dir() && !is_reparse(&md) {
             let p = entry.path();
-            prune_empty(&p);
+            if policy.is_excluded(&p) {
+                continue;
+            }
+            prune_empty(&p, policy);
             let _ = fs::remove_dir(&p); // so funciona se estiver vazia
         }
     }
@@ -393,7 +462,7 @@ const MAX_SKIPPED_LOG: usize = 300;
 
 /// Limpa uma categoria. `progress(processados, bytes)` e chamado no maximo
 /// a cada 150 ms; `stop` interrompe no proximo arquivo.
-pub fn clean_category(cat: &Category, stop: &AtomicBool, progress: &dyn Fn(u64, u64)) -> CleanItem {
+pub fn clean_category(cat: &Category, policy: &Policy, stop: &AtomicBool, progress: &dyn Fn(u64, u64)) -> CleanItem {
     let mut res = CleanItem { id: cat.id.into(), ..Default::default() };
     match cat.kind {
         Kind::RecycleBin => {
@@ -408,7 +477,7 @@ pub fn clean_category(cat: &Category, stop: &AtomicBool, progress: &dyn Fn(u64, 
             let mut last = Instant::now();
             let mut guards: HashMap<PathBuf, Option<Containment>> = HashMap::new();
             for rule in &cat.rules {
-                for_each_match(rule, &users, stop, &mut |base, path, md| {
+                for_each_match(cat, rule, &users, policy, stop, &mut |base, path, md| {
                     let guard = guards.entry(base.to_path_buf()).or_insert_with(|| Containment::new(base));
                     let allowed = guard.as_mut().is_some_and(|g| g.allows(&path));
                     if allowed && delete_file(&path) {
@@ -430,7 +499,7 @@ pub fn clean_category(cat: &Category, stop: &AtomicBool, progress: &dyn Fn(u64, 
                 }
                 if rule.prune {
                     for base in expand(rule.base, &users) {
-                        prune_empty(&base);
+                        prune_empty(&base, policy);
                     }
                 }
             }
@@ -498,7 +567,7 @@ mod tests {
         let root = fixture("safe");
         let cat = test_cat(&root.join("alvo").to_string_lossy());
         let stop = AtomicBool::new(false);
-        let res = super::clean_category(&cat, &stop, &|_, _| {});
+        let res = super::clean_category(&cat, &super::Policy::default(), &stop, &|_, _| {});
         assert_eq!(res.files, 2, "deveria apagar os 2 arquivos do alvo");
         assert_eq!(res.freed, 8);
         assert!(root.join("alvo").is_dir(), "a pasta raiz da regra deve ficar");
@@ -516,7 +585,7 @@ mod tests {
         // a propria pasta-alvo e uma junction apontando para "fora"
         let cat = test_cat(&root.join("alvo/atalho").to_string_lossy().replace('/', "\\"));
         let stop = AtomicBool::new(false);
-        let res = super::clean_category(&cat, &stop, &|_, _| {});
+        let res = super::clean_category(&cat, &super::Policy::default(), &stop, &|_, _| {});
         assert_eq!(res.files, 0, "nao pode apagar nada atraves de uma junction");
         assert!(root.join("fora/importante.txt").exists());
         let _ = std::fs::remove_dir(root.join("alvo/atalho"));
@@ -529,11 +598,55 @@ mod tests {
         let root = fixture("cancel");
         let cat = test_cat(&root.join("alvo").to_string_lossy());
         let stop = AtomicBool::new(true);
-        let res = super::clean_category(&cat, &stop, &|_, _| {});
+        let res = super::clean_category(&cat, &super::Policy::default(), &stop, &|_, _| {});
         assert_eq!(res.files, 0, "cancelado antes de comecar nao apaga nada");
         assert!(root.join("alvo/x.log").exists());
         let _ = std::fs::remove_dir(root.join("alvo/atalho"));
         let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn recent_temp_files_are_kept() {
+        use std::sync::atomic::AtomicBool;
+        let root = fixture("recent");
+        let mut cat = test_cat(&root.join("alvo").to_string_lossy());
+        cat.id = "usertemp"; // so as pastas Temp protegem os recentes
+        let policy = super::Policy { min_temp_age: Some(super::RECENT_TEMP_AGE), exclude: vec![] };
+        let stop = AtomicBool::new(false);
+        let res = super::clean_category(&cat, &policy, &stop, &|_, _| {});
+        assert_eq!(res.files, 0, "arquivos recem-criados ficam");
+        assert!(root.join("alvo/x.log").exists());
+
+        cat.id = "teste"; // fora das pastas Temp a idade nao importa
+        let res = super::clean_category(&cat, &policy, &stop, &|_, _| {});
+        assert_eq!(res.files, 2);
+        let _ = std::fs::remove_dir(root.join("alvo/atalho"));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn excluded_paths_are_kept() {
+        use std::sync::atomic::AtomicBool;
+        let root = fixture("exclude");
+        let cat = test_cat(&root.join("alvo").to_string_lossy());
+        let excluded = super::normalize_path(&root.join("alvo/a").to_string_lossy());
+        let policy = super::Policy { min_temp_age: None, exclude: vec![excluded] };
+        assert!(!policy.is_excluded(&root.join("alvo/ab")), "prefixo de nome nao e a mesma pasta");
+        let stop = AtomicBool::new(false);
+        let res = super::clean_category(&cat, &policy, &stop, &|_, _| {});
+        assert_eq!(res.files, 1, "so o x.log, fora da pasta excluida");
+        assert!(root.join("alvo/a/b/y.tmp").exists(), "arquivo dentro da pasta excluida fica");
+        let _ = std::fs::remove_dir(root.join("alvo/atalho"));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn policy_reads_the_config() {
+        let cfg = serde_json::json!({ "settings": { "protectRecent": false }, "exclude": ["C:\\Dados\\", " ", "d:/jogos"] });
+        let p = super::Policy::from_config(&cfg);
+        assert_eq!(p.min_temp_age, None);
+        assert_eq!(p.exclude, vec!["c:\\dados", "d:\\jogos"]);
+        assert_eq!(super::Policy::from_config(&serde_json::json!({})).min_temp_age, Some(super::RECENT_TEMP_AGE), "ligado por padrao");
     }
 
     #[test]

@@ -45,6 +45,7 @@ export function viewHistory() {
 const BEHAVIOR = [
   ["closeApps", "Fechar apps abertos antes de limpar", "Se navegadores, Discord, Teams ou OneDrive estiverem abertos, pergunta antes de fechá-los (como clicar no X) e só força quem não fechar em 8 s. O OneDrive é reaberto no final. Desligado, arquivos em uso são pulados."],
   ["autoScan", "Analisar ao abrir", "Faz a varredura (só leitura) assim que o app abre."],
+  ["protectRecent", "Proteger temporários recentes", "Arquivos das pastas Temp criados ou alterados nas últimas 24 h ficam, porque podem ser de um instalador ou programa ainda em uso."],
   ["restorePoint", "Criar ponto de restauração antes de limpar", "Mais seguro, mas deixa a limpeza ~1 min mais lenta. Precisa da Proteção do Sistema ativa."],
   ["closeToTray", "Fechar para a bandeja", "Fechar a janela deixa o app rodando no ícone perto do relógio. Para sair de vez, use o menu do ícone."],
   ["confirmClose", "Perguntar antes de fechar", "Confirma antes de sair pelo X, Alt+F4 ou “Sair” na bandeja. Tarefas em andamento são canceladas com segurança antes. Se a janela travar, Alt+F4 duas vezes fecha de qualquer jeito."],

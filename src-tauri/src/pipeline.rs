@@ -51,7 +51,7 @@ pub fn run_clean(opts: &CleanOpts, scheduled: bool, stop: &AtomicBool, emit: Emi
     let relaunch = if opts.close_apps { close_running_apps(&cats, opts.close_only.as_deref(), &mut summary, emit) } else { vec![] };
     let paused = pause_services(&cats, emit);
 
-    clean_categories(&cats, stop, emit, &mut summary);
+    clean_categories(&cats, &engine::Policy::load(), stop, emit, &mut summary);
     summary.cancelled = stop.load(Ordering::Relaxed);
 
     resume(&paused, &relaunch, emit);
@@ -91,14 +91,14 @@ fn pause_services(cats: &[&Category], emit: Emit) -> Vec<String> {
     system::stop_services(&services)
 }
 
-fn clean_categories(cats: &[&Category], stop: &AtomicBool, emit: Emit, summary: &mut CleanSummary) {
+fn clean_categories(cats: &[&Category], policy: &engine::Policy, stop: &AtomicBool, emit: Emit, summary: &mut CleanSummary) {
     emit("clean-phase", json!("Limpando…"));
     for cat in cats {
         if stop.load(Ordering::Relaxed) {
             break;
         }
         emit("clean-start", json!(cat.id));
-        let item = engine::clean_category(cat, stop, &|processed, freed| {
+        let item = engine::clean_category(cat, policy, stop, &|processed, freed| {
             emit("clean-tick", json!({ "id": cat.id, "files": processed, "freed": freed }));
         });
         summary.freed += item.freed;

@@ -59,11 +59,12 @@ export function toggle(set, value) {
   set.has(value) ? set.delete(value) : set.add(value);
 }
 
+/** Grava no disco; a promessa termina quando o backend ja pode ler a configuracao nova. */
 export function saveConfig() {
   S.config.selected = [...S.selected];
   S.config.known = allIds();
   S.config.settings = S.settings;
-  invoke("save_config", { config: S.config }).catch(console.error);
+  return invoke("save_config", { config: S.config }).catch(console.error);
 }
 
 function readLegacy(key) {
