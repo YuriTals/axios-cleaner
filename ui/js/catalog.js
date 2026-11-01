@@ -44,8 +44,8 @@ export const APP_NAMES = {
 };
 
 /** Cores das areas no nucleo e das fatias do mapa (rubi -> cinzas). */
-export const AREA_COLORS = ["#FF2448", "#FF6A80", "#ECECEF", "#B6B6BC", "#8A8A91", "#64646B", "#46464C"];
-export const MAP_COLORS = ["#FF2448", "#FF6A80", "#EDEDED", "#BDBDC2", "#9A9AA0", "#77777C", "#5E5E64", "#47474C"];
+export const AREA_COLORS = ["#FF2448", "#FF6A80", "#F2F2F4", "#C8C8CE", "#A2A2AA", "#84848C", "#686870"];
+export const MAP_COLORS = ["#FF2448", "#FF6A80", "#F2F2F4", "#CDCDD2", "#ADADB3", "#8E8E95", "#76767D", "#606067"];
 
 export const WEEKDAYS = [["SUN", "Domingo"], ["MON", "Segunda"], ["TUE", "Terça"], ["WED", "Quarta"], ["THU", "Quinta"], ["FRI", "Sexta"], ["SAT", "Sábado"]];
 export const SCHEDULE_FREQS = [["off", "Desligada"], ["daily", "Diária"], ["weekly", "Semanal"], ["monthly", "Mensal"]];

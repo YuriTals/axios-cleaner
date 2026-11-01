@@ -85,7 +85,7 @@ function areaIndexAt(g, turn) {
 function coreCell(g, turn, depth, d, scanF) {
   if (scanF != null || !g.slices.length) {
     const lit = scanF != null && turn <= scanF;
-    return { ch: lit ? ringChar(depth) : "·", color: lit ? "#FF2448" : "#2A2A30", alpha: 1 };
+    return { ch: lit ? ringChar(depth) : "·", color: lit ? "#FF2448" : "#44444C", alpha: 1 };
   }
   const rel = (turn - g.spin + 1) % 1;
   const k = sliceAt(g.ends, rel);
@@ -110,8 +110,8 @@ function drawCore(t) {
     for (let x = CORE.cell / 2; x < w; x += CORE.cell * CORE.colStep) {
       const dx = x - g.cx, dy = y - g.cy, d = Math.hypot(dx, dy);
       if (Math.abs(d - (g.r0 - CORE.dotsGap)) < CORE.cell * 0.45) {
-        ctx.globalAlpha = 0.35;
-        ctx.fillStyle = "#3A3A40";
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = "#5A5A62";
         ctx.fillText("·", x, y);
         continue;
       }

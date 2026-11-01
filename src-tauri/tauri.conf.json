@@ -18,7 +18,7 @@
         "decorations": false,
         "transparent": false,
         "theme": "Dark",
-        "backgroundColor": "#121213",
+        "backgroundColor": "#0C0C0F",
         "center": true,
         "label": "main",
         "create": false,
