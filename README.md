@@ -31,12 +31,12 @@
 - **34 cleaning categories in 6 areas:** System, Browsers, Apps, Games & GPU, Dev and Privacy. Every category can be turned off, and you can see where the files are and which are the biggest before cleaning.
 - **Live progress inside the button:** hold to start; while it runs the button shows the real %, the current step and the time left. Hover to **cancel**, and the button asks for confirmation right inside it.
 - **Safe by design:** shortcuts to folders (junctions/symlinks) are never followed, files in use are skipped and listed in the log, and only empty folders are removed. Browsing history, passwords, cookies, bookmarks and documents are never touched.
-- **Polite app closing:** browsers, Discord, Teams and OneDrive are asked to close (like clicking X) and are only forced after 8 s. OneDrive reopens when the cleaning ends. Windows Update is paused and resumed automatically.
+- **Polite app closing:** before cleaning, it lists the open apps that hold files (browsers, Discord, Teams, OneDrive) and you pick which ones may close. They are asked to close (like clicking X) and are only forced after 8 s. OneDrive reopens when the cleaning ends. Windows Update is paused and resumed automatically.
 - **Tools:** large files finder (sends to the Recycle Bin, so it can be undone), ASCII space map per folder or drive, reversible startup programs manager, and Windows maintenance (DNS, Explorer and thumbnail cache, TRIM, DISM, `sfc`, restore point).
-- **Scheduled cleaning and tray icon:** daily, weekly or monthly runs with no window and a notification at the end, plus an optional "close to tray".
+- **Scheduled cleaning and tray icon:** daily, weekly or monthly runs with no window and a notification at the end, plus an optional "close to tray". Quitting asks first and safely cancels any task in progress.
 - **Live telemetry:** CPU, GPU, memory and disk activity as ASCII charts, and every drive as an ASCII bar showing how much is junk.
 - **History and logs:** every cleaning saves a plain-text log you can open from the app.
-- **Signed updates:** the app tells you when a new version is out and installs it with one hold of a button. It only accepts installers signed with the project key, and the check can be turned off.
+- **Signed updates:** the app tells you when a new version is out and installs it with one hold of a button, or you can leave it for later or skip that version. It only accepts installers signed with the project key, and the check can be turned off.
 
 <p align="center">
   <img src="docs/screenshots/andamento.png" width="420" alt="Cleaning in progress with percentage and time left">

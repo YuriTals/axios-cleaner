@@ -1,12 +1,13 @@
 // Acoes que conversam com o backend: varrer, limpar, manutencao, ferramentas.
 
 import { TASKS, taskById } from "./catalog.js";
-import { esc, fmt, plural } from "./format.js";
+import { appNames, esc, fmt, plural } from "./format.js";
 import { S, allIds, busy, filesOf, idsOf, saveConfig, selIn, selectedBytes } from "./state.js";
 import { invoke } from "./tauri.js";
 import { render, updateLive } from "./render.js";
 import { bigNumber, blobCanvas } from "./widgets.js";
 import { currentSchedule } from "./views/app.js";
+import { updateSkipped } from "./views/update.js";
 
 const DONE_FLASH_MS = 700;
 
@@ -59,9 +60,35 @@ function idsForAction(action) {
   return selIn(idsOf(action.slice("group:".length)));
 }
 
+/** Antes de limpar, pergunta se pode fechar os apps abertos que travam os arquivos. */
 export async function clean(action) {
   const ids = idsForAction(action);
   if (!ids.length || busy()) return;
+  if (S.settings.closeApps) {
+    const running = await invoke("running_apps", { ids }).catch(() => []);
+    if (running.length) {
+      // Um item por nome amigavel: Teams.exe e ms-teams.exe viram "Teams".
+      const groups = {};
+      running.forEach((exe) => (groups[appNames([exe])[0]] ||= []).push(exe));
+      const apps = Object.entries(groups).map(([name, exes]) => ({ name, exes }));
+      S.askApps = { action, apps, picked: new Set(Object.keys(groups)) };
+      render();
+      return;
+    }
+  }
+  runClean(action, ids, !!S.settings.closeApps);
+}
+
+/** Resposta da pergunta: "go" limpa fechando so os apps marcados, "cancel" desiste. */
+export function answerApps(answer) {
+  const ask = S.askApps;
+  S.askApps = null;
+  if (!ask || answer !== "go" || busy()) return render();
+  const closeOnly = ask.apps.filter((a) => ask.picked.has(a.name)).flatMap((a) => a.exes);
+  runClean(ask.action, idsForAction(ask.action), closeOnly.length > 0, closeOnly);
+}
+
+async function runClean(action, ids, closeApps, closeOnly = null) {
   // O % e calculado pelos arquivos que a varredura encontrou em cada categoria.
   const weights = Object.fromEntries(ids.map((id) => [id, filesOf(id) + 1]));
   S.run = {
@@ -73,7 +100,7 @@ export async function clean(action) {
   render();
   let result = null;
   try {
-    result = await invoke("clean", { opts: { ids, closeApps: !!S.settings.closeApps, restorePoint: !!S.settings.restorePoint } });
+    result = await invoke("clean", { opts: { ids, closeApps, closeOnly, restorePoint: !!S.settings.restorePoint } });
     S.summary = { ...result, scope: action };
   } catch (e) {
     console.error(e);
@@ -89,6 +116,21 @@ export function cancelRun() {
   if (!S.run?.cancel) return;
   S.run.cancelling = true;
   invoke("cancel", { job: S.run.cancel });
+}
+
+const QUIT_WAIT_MS = 20000;
+const QUIT_POLL_MS = 200;
+
+/** Sai do app. Uma tarefa cancelavel e cancelada antes, para religar servicos e reabrir apps. */
+export async function quitApp() {
+  S.quit = "closing";
+  render();
+  if (S.run?.cancel) {
+    cancelRun();
+    const until = performance.now() + QUIT_WAIT_MS;
+    while (S.run && performance.now() < until) await new Promise((r) => setTimeout(r, QUIT_POLL_MS));
+  }
+  invoke("quit_app");
 }
 
 // ---------------------------------------------------------------------------
@@ -166,15 +208,17 @@ export async function saveSchedule() {
 // Atualizacoes
 // ---------------------------------------------------------------------------
 
-/** Consulta o GitHub. Na verificacao automatica, abre o aviso uma vez por versao. */
+/**
+ * Consulta o GitHub e pergunta se quer atualizar. Na verificacao automatica nao
+ * pergunta de novo se escolheu "depois" nesta sessao ou pulou esta versao.
+ */
 export async function checkForUpdates({ manual = false } = {}) {
   if (S.update.checking) return;
   Object.assign(S.update, { checking: true, error: "" });
   render();
   try {
     S.update.info = await invoke("check_update");
-    const version = S.update.info?.version;
-    if (version && (manual || S.config.updateSeen !== version)) S.update.open = true;
+    if (S.update.info && (manual || (!S.update.later && !updateSkipped()))) S.update.open = true;
   } catch (e) {
     S.update.error = String(e).slice(0, 80);
   }
@@ -182,9 +226,15 @@ export async function checkForUpdates({ manual = false } = {}) {
   render();
 }
 
-export function dismissUpdate() {
+/** "Depois" pergunta de novo na proxima abertura; "pular" ignora esta versao de vez. */
+export function dismissUpdate(skip) {
   S.update.open = false;
-  S.config.updateSeen = S.update.info?.version;
+  if (!skip) {
+    S.update.later = true;
+    return;
+  }
+  S.config.updateSkip = S.update.info?.version;
+  delete S.config.updateSeen; // usado ate a 1.2.2
   saveConfig();
 }
 

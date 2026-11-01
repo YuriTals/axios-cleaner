@@ -22,6 +22,9 @@ pub type Emit<'a> = &'a dyn Fn(&str, Value);
 pub struct CleanOpts {
     pub ids: Vec<String>,
     pub close_apps: bool,
+    /// Processos que o usuario deixou fechar; `None` fecha todos os das categorias.
+    #[serde(default)]
+    pub close_only: Option<Vec<String>>,
     pub restore_point: bool,
 }
 
@@ -45,7 +48,7 @@ pub fn run_clean(opts: &CleanOpts, scheduled: bool, stop: &AtomicBool, emit: Emi
         emit("clean-phase", json!("Criando ponto de restauração…"));
         summary.restore_error = system::create_restore_point().err();
     }
-    let relaunch = if opts.close_apps { close_running_apps(&cats, &mut summary, emit) } else { vec![] };
+    let relaunch = if opts.close_apps { close_running_apps(&cats, opts.close_only.as_deref(), &mut summary, emit) } else { vec![] };
     let paused = pause_services(&cats, emit);
 
     clean_categories(&cats, stop, emit, &mut summary);
@@ -62,8 +65,9 @@ fn selected_categories(ids: &[String]) -> Vec<&'static Category> {
 }
 
 /// Fecha os apps que travam os arquivos e devolve o que deve ser reaberto.
-fn close_running_apps(cats: &[&Category], summary: &mut CleanSummary, emit: Emit) -> Vec<PathBuf> {
-    let names: Vec<&str> = cats.iter().flat_map(|c| c.processes.iter().copied()).collect();
+fn close_running_apps(cats: &[&Category], only: Option<&[String]>, summary: &mut CleanSummary, emit: Emit) -> Vec<PathBuf> {
+    let allowed = |name: &str| only.map_or(true, |list| list.iter().any(|n| n.eq_ignore_ascii_case(name)));
+    let names: Vec<&str> = cats.iter().flat_map(|c| c.processes.iter().copied()).filter(|n| allowed(n)).collect();
     if names.is_empty() {
         return vec![];
     }

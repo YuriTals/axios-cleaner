@@ -2,7 +2,7 @@
 
 use crate::pipeline::{self, CleanOpts};
 use crate::{engine, store};
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -31,17 +31,33 @@ fn close_to_tray_enabled() -> bool {
     store::load_config()["settings"]["closeToTray"].as_bool().unwrap_or(false)
 }
 
-/// Cria a janela principal. Com "fechar para a bandeja" ligado, fechar a
-/// janela (X ou Alt+F4) so a esconde e o app continua rodando na bandeja.
+/// Pedido de saida que a interface ainda nao confirmou ter recebido (`quit_ack`).
+pub static QUIT_PENDING: AtomicBool = AtomicBool::new(false);
+
+/// Sair passa pela interface, que pergunta e cancela tarefas antes de chamar `quit_app`.
+/// Se a interface travou e nao respondeu ao primeiro pedido, o segundo fecha de vez.
+pub fn request_quit(app: &AppHandle) {
+    if QUIT_PENDING.swap(true, Ordering::SeqCst) {
+        app.exit(0);
+        return;
+    }
+    show_main(app);
+    let _ = app.emit("quit-requested", ());
+}
+
+/// Cria a janela principal. Fechar a janela (X ou Alt+F4) so a esconde com
+/// "fechar para a bandeja" ligado; sem ele, vira um pedido de saida.
 pub fn create_main_window(app: &AppHandle) -> tauri::Result<()> {
     let config = app.config().app.windows[0].clone();
     let window = WebviewWindowBuilder::from_config(app, &config)?.on_navigation(is_app_url).build()?;
     let handle = window.clone();
     window.on_window_event(move |event| {
         if let WindowEvent::CloseRequested { api, .. } = event {
+            api.prevent_close();
             if close_to_tray_enabled() {
-                api.prevent_close();
                 let _ = handle.hide();
+            } else {
+                request_quit(handle.app_handle());
             }
         }
     });
@@ -64,7 +80,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 show_main(app);
                 let _ = app.emit("tray-scan", ());
             }
-            "quit" => app.exit(0),
+            "quit" => request_quit(app),
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
@@ -89,6 +105,7 @@ fn saved_clean_options() -> CleanOpts {
     CleanOpts {
         ids,
         close_apps: cfg["settings"]["closeApps"].as_bool().unwrap_or(true),
+        close_only: None,
         restore_point: cfg["settings"]["restorePoint"].as_bool().unwrap_or(false),
     }
 }

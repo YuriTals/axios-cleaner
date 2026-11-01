@@ -10,6 +10,7 @@ import { viewGroup, viewRecycle } from "./views/cleaning.js";
 import { viewBig, viewMap, viewStartup, viewTasks } from "./views/tools.js";
 import { viewHistory, viewSettings } from "./views/app.js";
 import { updateBadge, updateModalHtml } from "./views/update.js";
+import { appsModalHtml, quitModalHtml } from "./views/dialogs.js";
 
 const VIEWS = {
   home: viewHome,
@@ -60,7 +61,7 @@ function renderUpdate() {
   const badge = updateBadge();
   pill.hidden = !badge;
   pill.textContent = badge;
-  document.querySelector("#modal").innerHTML = updateModalHtml();
+  document.querySelector("#modal").innerHTML = quitModalHtml() || appsModalHtml() || updateModalHtml();
 }
 
 function renderStatus() {

@@ -31,12 +31,12 @@
 - **34 categorias de limpeza em 6 áreas:** Sistema, Navegadores, Apps, Jogos e GPU, Dev e Privacidade. Qualquer categoria pode ser desligada, e dá para ver onde estão os arquivos e quais são os maiores antes de limpar.
 - **Progresso ao vivo dentro do botão:** segure para iniciar; enquanto roda, o botão mostra o % real, a etapa atual e o tempo restante. Passe o mouse para **cancelar**, e o botão pede confirmação dentro dele mesmo.
 - **Seguro por padrão:** atalhos de pasta (junctions/symlinks) nunca são seguidos, arquivos em uso são pulados e listados no log, e só pastas vazias são removidas. Histórico, senhas, cookies, favoritos e documentos nunca são tocados.
-- **Fecha os apps com educação:** navegadores, Discord, Teams e OneDrive recebem um pedido para fechar (como clicar no X) e só são forçados depois de 8 s. O OneDrive é reaberto no fim, e o Windows Update é pausado e religado sozinho.
+- **Fecha os apps com educação:** antes de limpar, mostra os apps abertos que travam arquivos (navegadores, Discord, Teams, OneDrive) e você escolhe quais podem fechar. Eles recebem um pedido para fechar (como clicar no X) e só são forçados depois de 8 s. O OneDrive é reaberto no fim, e o Windows Update é pausado e religado sozinho.
 - **Ferramentas:** busca de arquivos grandes (vão para a Lixeira, dá para desfazer), mapa de espaço em ASCII por pasta ou disco, gerenciador reversível de programas na inicialização e manutenção do Windows (DNS, Explorer e cache de miniaturas, TRIM, DISM, `sfc` e ponto de restauração).
-- **Limpeza agendada e ícone na bandeja:** diária, semanal ou mensal, sem abrir janela e com aviso no fim, além da opção "fechar para a bandeja".
+- **Limpeza agendada e ícone na bandeja:** diária, semanal ou mensal, sem abrir janela e com aviso no fim, além da opção "fechar para a bandeja". Sair pergunta antes e cancela com segurança o que estiver rodando.
 - **Telemetria ao vivo:** CPU, GPU, memória e atividade de disco em gráficos ASCII, e cada unidade como uma barra ASCII mostrando quanto é lixo.
 - **Histórico e logs:** cada limpeza gera um log em texto que você abre pelo próprio app.
-- **Atualizações assinadas:** o app avisa quando sai versão nova e instala segurando um botão. Ele só aceita instaladores assinados com a chave do projeto, e a verificação pode ser desligada.
+- **Atualizações assinadas:** o app avisa quando sai versão nova e instala segurando um botão, ou você deixa para depois ou pula aquela versão. Ele só aceita instaladores assinados com a chave do projeto, e a verificação pode ser desligada.
 
 <p align="center">
   <img src="docs/screenshots/andamento.png" width="420" alt="Limpeza em andamento com porcentagem e tempo restante">

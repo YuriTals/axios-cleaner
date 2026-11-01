@@ -39,7 +39,7 @@ export function cleanNote(ids, action) {
   const apps = runningApps(selIn(ids));
   if (!apps.length) return "Apagado de vez, sem passar pela Lixeira.";
   return S.settings.closeApps
-    ? `Vai pedir para fechar: <b>${apps.join(", ")}</b>`
+    ? `Vai perguntar antes de fechar: <b>${apps.join(", ")}</b>`
     : `${apps.join(", ")} aberto — arquivos em uso serão pulados.`;
 }
 

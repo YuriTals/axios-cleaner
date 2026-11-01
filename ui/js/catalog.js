@@ -1,8 +1,8 @@
 // Dados fixos da interface: telas, tarefas de manutencao, nomes e cores.
 
-export const VERSION = "1.2.2";
+export const VERSION = "1.2.3";
 
-export const DEFAULT_SETTINGS = { closeApps: true, autoScan: true, restorePoint: false, closeToTray: false, updateCheck: true };
+export const DEFAULT_SETTINGS = { closeApps: true, autoScan: true, restorePoint: false, closeToTray: false, confirmClose: true, updateCheck: true };
 
 /** Com a verificacao ligada: consulta o GitHub ao abrir e a cada 12 h. */
 export const UPDATE_INTERVAL_MS = 12 * 60 * 60 * 1000;

@@ -216,6 +216,37 @@ pub fn open_log(path: String) -> Result<(), String> {
     system::open_log(&path, &store::logs_dir())
 }
 
+/// Apps abertos agora que a limpeza destas categorias precisaria fechar.
+#[tauri::command]
+pub async fn running_apps(ids: Vec<String>) -> Result<Vec<String>, String> {
+    blocking(move || {
+        let procs = system::process_list();
+        let mut names: Vec<String> = engine::all()
+            .iter()
+            .filter(|c| ids.iter().any(|i| i == c.id))
+            .flat_map(|c| c.processes.iter().copied())
+            .filter(|n| procs.processes_by_exact_name(n.as_ref()).next().is_some())
+            .map(String::from)
+            .collect();
+        names.sort();
+        names.dedup();
+        names
+    })
+    .await
+}
+
+/// A interface recebeu o pedido de saida (ver `shell::request_quit`).
+#[tauri::command]
+pub fn quit_ack() {
+    shell::QUIT_PENDING.store(false, Ordering::SeqCst);
+}
+
+/// Sai de vez, depois que a interface confirmou (nao passa pelo `CloseRequested`).
+#[tauri::command]
+pub fn quit_app(app: AppHandle) {
+    app.exit(0);
+}
+
 #[tauri::command]
 pub fn set_tray_tooltip(app: AppHandle, text: String) {
     if let Some(tray) = app.tray_by_id(shell::TRAY_ID) {

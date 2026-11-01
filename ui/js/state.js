@@ -32,7 +32,9 @@ export const S = {
   startup: null,
   tasks: { picked: new Set(DEFAULT_TASKS), status: {} },
   schedule: { active: false, msg: "" },
-  update: { info: null, checking: false, error: "", checkedAt: null, open: false },
+  update: { info: null, checking: false, error: "", checkedAt: null, open: false, later: false },
+  quit: null,          // confirmacao de fechar: null | "ask" | "closing"
+  askApps: null,       // { action, apps }: pergunta se pode fechar apps antes de limpar
 };
 
 export const catsOf = (group) => S.cats.filter((c) => c.group === group && c.id !== "recycle");

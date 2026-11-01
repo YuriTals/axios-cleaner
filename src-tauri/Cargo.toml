@@ -1,6 +1,6 @@
 [package]
 name = "axios-cleaner"
-version = "1.2.2"
+version = "1.2.3"
 description = "Axios Cleaner - limpeza de arquivos temporarios para Windows"
 edition = "2021"
 

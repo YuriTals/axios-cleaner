@@ -66,8 +66,14 @@ const CLICK = {
   },
   schsave: () => { actions.saveSchedule(); return false; },
   openupdate: () => { S.update.open = true; },
-  closeupdate: () => { actions.dismissUpdate(); },
+  closeupdate: (mode) => { actions.dismissUpdate(mode === "skip"); },
+  apps: (answer) => { actions.answerApps(answer); return false; },
+  apppick: (name) => { toggle(S.askApps.picked, name); },
   checkupdate: () => { actions.checkForUpdates({ manual: true }); return false; },
+  quit: (answer) => {
+    if (answer === "yes") { actions.quitApp(); return false; }
+    S.quit = null;
+  },
 };
 const CLICK_SELECTOR = Object.keys(CLICK).map((k) => `[data-${k}]`).join(",");
 
@@ -147,6 +153,10 @@ function wireInput() {
       e.preventDefault();
       if (!e.repeat) holdStart(btn, actions.startAction);
     }
+    if (e.key === "Escape") {
+      if (S.quit === "ask") { S.quit = null; render(); }
+      else if (S.askApps) actions.answerApps("cancel");
+    }
     // Sem recarregar a janela, para parecer app nativo.
     if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) e.preventDefault();
   });
@@ -164,7 +174,7 @@ function wireWindowButtons() {
   const win = currentWindow();
   document.querySelector("#wMin").onclick = () => win.minimize();
   document.querySelector("#wMax").onclick = () => win.toggleMaximize();
-  // "Fechar para a bandeja" e decidido no backend (esconde em vez de fechar).
+  // O backend trata o CloseRequested: esconde na bandeja ou emite "quit-requested".
   document.querySelector("#wClose").onclick = () => win.close();
 }
 
@@ -209,6 +219,14 @@ async function wireBackendEvents() {
   await listen("recycle-progress", (p) => { if (S.run?.kind === "recycle") S.run.done = p.done; patchRun(); });
   await listen("map-progress", (p) => { S.map.progress = p; if (S.route === "map") render(); });
   await listen("tray-scan", () => { S.route = "home"; actions.scan(); });
+  // X, Alt+F4 ou "Sair" na bandeja. Responder logo avisa o backend que a interface nao travou.
+  await listen("quit-requested", () => {
+    invoke("quit_ack");
+    if (S.quit) return;
+    if (!S.settings.confirmClose) return actions.quitApp();
+    S.quit = "ask";
+    render();
+  });
   await listen("update-progress", (p) => {
     if (S.run?.kind !== "update") return;
     Object.assign(S.run, { done: p.downloaded, total: p.total || 0 });
