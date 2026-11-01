@@ -173,19 +173,64 @@ export async function loadBigFiles() {
   render();
 }
 
-async function recycleBigFiles() {
-  const paths = [...S.big.picked];
+/** Manda os arquivos marcados de uma ferramenta (Grandes ou Duplicados) para a Lixeira. */
+async function recycleFiles(tool, action, dropSent) {
+  const paths = [...tool.picked];
   if (!paths.length || busy()) return;
-  S.run = { kind: "recycle", action: "recycle-big", cancel: "recycle", start: performance.now(), total: paths.length, done: 0 };
+  S.run = { kind: "recycle", action, cancel: "recycle", start: performance.now(), total: paths.length, done: 0 };
   render();
   try {
-    S.big.result = await invoke("recycle_files", { paths });
+    tool.result = await invoke("recycle_files", { paths });
     const sent = new Set(paths.slice(0, S.run.done));
-    S.big.items = S.big.items.filter((f) => !sent.has(f.path));
-    S.big.picked = new Set(paths.filter((p) => !sent.has(p)));
+    dropSent(sent);
+    tool.picked = new Set(paths.filter((p) => !sent.has(p)));
   } catch (e) { console.error(e); }
   await finishRun();
   render();
+}
+
+const recycleBigFiles = () => recycleFiles(S.big, "recycle-big", (sent) => {
+  S.big.items = S.big.items.filter((f) => !sent.has(f.path));
+});
+
+const recycleDupFiles = () => recycleFiles(S.dups, "recycle-dups", (sent) => {
+  S.dups.groups = S.dups.groups
+    .map((g) => ({ ...g, files: g.files.filter((f) => !sent.has(f.path)) }))
+    .filter((g) => g.files.length > 1);
+});
+
+// ---------------------------------------------------------------------------
+// Duplicados
+// ---------------------------------------------------------------------------
+
+export async function loadDups() {
+  const D = S.dups;
+  if (D.loading || busy()) return;
+  D.root ||= S.map.home;
+  Object.assign(D, { loading: true, groups: null, progress: null, result: null, error: "" });
+  D.picked.clear();
+  render();
+  try {
+    D.groups = await invoke("duplicates", { root: D.root, minMb: D.min });
+  } catch (e) {
+    D.error = String(e);
+  }
+  D.loading = false;
+  render();
+}
+
+/** Escolhe outra pasta para procurar (ou volta para a pasta do usuario). */
+export async function setDupRoot(which) {
+  const root = which === "home" ? S.map.home : await invoke("pick_path", { folder: true }).catch(() => null);
+  if (!root) return;
+  Object.assign(S.dups, { root, groups: null, error: "", result: null });
+  S.dups.picked.clear();
+  render();
+}
+
+/** Marca todas as copias menos a mais antiga de cada grupo. */
+export function markDupCopies() {
+  S.dups.picked = new Set((S.dups.groups || []).flatMap((g) => g.files.slice(1).map((f) => f.path)));
 }
 
 export async function loadMap(path, isRoot = false) {
@@ -331,6 +376,7 @@ export function startAction(action) {
   if (action === "update") installUpdate();
   else if (action === "tasks") runMaintenance();
   else if (action === "recycle-big") recycleBigFiles();
+  else if (action === "recycle-dups") recycleDupFiles();
   else clean(action);
 }
 

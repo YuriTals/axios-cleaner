@@ -18,6 +18,10 @@ pub struct PerfState(pub Mutex<perf::Perf>);
 #[derive(Default)]
 pub struct LargeFilesState(pub Mutex<HashSet<String>>);
 
+/// O mesmo, para a ultima busca de duplicados.
+#[derive(Default)]
+pub struct DupFilesState(pub Mutex<HashSet<String>>);
+
 /// Tarefas longas que a interface pode cancelar.
 #[derive(Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
@@ -27,6 +31,7 @@ pub enum Job {
     Large,
     Tasks,
     Recycle,
+    Dups,
 }
 
 /// Um sinal de cancelamento por tarefa.
@@ -37,6 +42,7 @@ pub struct CancelFlags {
     large: AtomicBool,
     tasks: AtomicBool,
     recycle: AtomicBool,
+    dups: AtomicBool,
 }
 
 impl CancelFlags {
@@ -47,6 +53,7 @@ impl CancelFlags {
             Job::Large => &self.large,
             Job::Tasks => &self.tasks,
             Job::Recycle => &self.recycle,
+            Job::Dups => &self.dups,
         }
     }
 
@@ -336,8 +343,15 @@ pub async fn large_files(flags: Flags<'_>, found: State<'_, LargeFilesState>, mi
 }
 
 #[tauri::command]
-pub async fn recycle_files(app: AppHandle, flags: Flags<'_>, found: State<'_, LargeFilesState>, paths: Vec<String>) -> Result<(u64, u64), String> {
-    let allowed = found.0.lock().unwrap().clone();
+pub async fn recycle_files(
+    app: AppHandle,
+    flags: Flags<'_>,
+    large: State<'_, LargeFilesState>,
+    dups: State<'_, DupFilesState>,
+    paths: Vec<String>,
+) -> Result<(u64, u64), String> {
+    let mut allowed = large.0.lock().unwrap().clone();
+    allowed.extend(dups.0.lock().unwrap().iter().cloned());
     let paths: Vec<String> = paths.into_iter().filter(|p| allowed.contains(p)).collect();
     let flags = flags.inner().clone();
     blocking(move || {
@@ -346,6 +360,28 @@ pub async fn recycle_files(app: AppHandle, flags: Flags<'_>, found: State<'_, La
         })
     })
     .await
+}
+
+#[tauri::command]
+pub async fn duplicates(
+    app: AppHandle,
+    flags: Flags<'_>,
+    found: State<'_, DupFilesState>,
+    root: String,
+    min_mb: u64,
+) -> Result<Vec<files::DupGroup>, String> {
+    if !files::allowed_search_root(&root) {
+        return Err("Essa pasta é do sistema ou de programas e não pode ser analisada.".into());
+    }
+    let flags = flags.inner().clone();
+    let groups = blocking(move || {
+        files::duplicates(&root, min_mb * 1024 * 1024, flags.begin(Job::Dups), &|phase, done, total, current| {
+            let _ = app.emit("dup-progress", json!({ "phase": phase, "done": done, "total": total, "current": current }));
+        })
+    })
+    .await?;
+    *found.0.lock().unwrap() = groups.iter().flat_map(|g| g.files.iter().map(|f| f.path.clone())).collect();
+    Ok(groups)
 }
 
 #[tauri::command]

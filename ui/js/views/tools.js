@@ -1,9 +1,9 @@
 // Ferramentas: arquivos grandes, mapa de espaco, inicializacao e manutencao.
 
-import { BIG_FILE_SIZES_MB, TASKS } from "../catalog.js";
+import { BIG_FILE_SIZES_MB, DUP_SIZES_MB, TASKS } from "../catalog.js";
 import { ago, asciiBar, esc, fmt, parentOf, plural } from "../format.js";
 import { runButton, runFor, runHint } from "../run.js";
-import { S, busy } from "../state.js";
+import { S, busy, dupGroupsFullyPicked } from "../state.js";
 import { actionBar, empty, panelHeader } from "../widgets.js";
 import { mapSegments } from "../canvas.js";
 
@@ -53,6 +53,81 @@ export function viewBig() {
         label: "Selecionado", size: bytes, count: plural(picked.length, "arquivo", "arquivos"), note,
         frac: total ? bytes / total : 0, action: "recycle-big", buttonLabel: "MOVER P/ LIXEIRA",
         disabled: !picked.length || B.loading || busy(),
+      })}
+    </section>`;
+}
+
+// ---------------------------------------------------------------------------
+// Duplicados
+// ---------------------------------------------------------------------------
+
+function dupFileRow(f, k) {
+  const on = S.dups.picked.has(f.path);
+  return `
+    <div class="row" aria-checked="${on}">
+      <button class="row-main" role="checkbox" aria-checked="${on}" data-duppick="${esc(f.path)}" ${busy() ? "disabled" : ""}>
+        <span class="check"></span>
+        <span class="main"><span class="name">${esc(f.name)}${k === 0 ? `<span class="tag soft">MAIS ANTIGA</span>` : ""}</span><span class="desc">${esc(f.folder || "Pasta do usuário")} · ${ago(f.modified)}</span></span>
+      </button>
+      <button class="row-more" data-reveal="${esc(f.path)}" title="Mostrar no Explorer">↗</button>
+    </div>`;
+}
+
+function dupGroup(g) {
+  const full = g.files.every((f) => S.dups.picked.has(f.path));
+  return `
+    <div class="dgroup ${full ? "full" : ""}">
+      <div class="dgroup-h"><span>${g.files.length} cópias · ${fmt(g.bytes)} cada</span><span>${full ? "todas marcadas: deixe uma" : `${fmt(g.bytes * (g.files.length - 1))} a liberar`}</span></div>
+      ${g.files.map(dupFileRow).join("")}
+    </div>`;
+}
+
+function dupList() {
+  const D = S.dups;
+  if (D.loading) {
+    const p = D.progress || {};
+    const f = p.total ? p.done / p.total : 0;
+    return empty(`
+      <span class="spinner"></span><br>${esc(p.phase || "Listando")} · ${p.total ? `${p.done}/${p.total}` : "lendo pastas"}<br>
+      <div class="ascii" style="margin:10px 0">${asciiBar(f, 32)}</div>
+      <span class="muted">${esc(p.current || "")}</span><br>
+      <button class="linkbtn mono" data-cancel="dups">Parar</button>`);
+  }
+  if (D.error) return empty(esc(D.error));
+  if (!D.groups) return empty(`Procura arquivos com exatamente o mesmo conteúdo, mesmo com nomes diferentes.<br><br><button class="btn" data-dupsearch>Procurar</button>`);
+  if (!D.groups.length) return empty(`Nenhum arquivo duplicado acima de ${sizeLabel(D.min)}.`);
+  return D.groups.map(dupGroup).join("");
+}
+
+export function viewDups() {
+  const D = S.dups;
+  const root = D.root || S.map.home || "";
+  const chips = DUP_SIZES_MB.map((mb) => `<button data-dupmin="${mb}" aria-pressed="${D.min === mb}">${sizeLabel(mb)}</button>`).join("");
+  const groups = D.groups || [];
+  const files = groups.flatMap((g) => g.files);
+  const picked = files.filter((f) => D.picked.has(f.path));
+  const bytes = picked.reduce((a, f) => a + f.bytes, 0);
+  const wasted = groups.reduce((a, g) => a + g.bytes * (g.files.length - 1), 0);
+  const blocked = dupGroupsFullyPicked().length > 0;
+  const note = blocked ? `<b>Em algum grupo todas as cópias estão marcadas.</b> Deixe pelo menos uma.`
+    : D.result ? `<b>${plural(D.result[0], "arquivo enviado", "arquivos enviados")} para a Lixeira</b> · ${fmt(D.result[1])}`
+      : "Destino: Lixeira — dá para restaurar depois.";
+  const tools = groups.length ? `<button class="linkbtn mono" data-dupmark>Marcar cópias</button>` : "";
+  return `
+    <section class="panel">
+      ${panelHeader("dups", "Arquivos duplicados", `<div class="toggle">${chips}</div>`)}
+      <div class="crumb">
+        <button class="linkbtn mono" data-duproot="home" ${D.loading ? "disabled" : ""}>Usuário</button>
+        <button class="linkbtn mono" data-duproot="pick" ${D.loading ? "disabled" : ""}>Escolher pasta…</button>
+        <span class="path">${esc(root)}</span>
+        ${D.groups && !D.loading ? `<button class="linkbtn mono" data-dupsearch>Procurar de novo</button>` : ""}${tools}
+      </div>
+      <div class="sub">Nada vem marcado: revise e escolha. Cópias usadas por programas, como mods em cada instância de um jogo, podem ser necessárias. Pastas do Windows, de programas e da Steam ficam de fora.</div>
+      <div class="list scroll">${dupList()}</div>
+      ${actionBar({
+        label: "Selecionado", size: bytes, count: `${plural(picked.length, "arquivo", "arquivos")} · ${fmt(wasted)} em cópias`, note,
+        frac: wasted ? bytes / wasted : 0, action: "recycle-dups", buttonLabel: "MOVER P/ LIXEIRA",
+        disabled: !picked.length || D.loading || busy() || blocked,
       })}
     </section>`;
 }

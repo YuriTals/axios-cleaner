@@ -12,7 +12,7 @@ mod store;
 mod system;
 mod updates;
 
-use commands::{CancelFlags, LargeFilesState, PerfState, SysState};
+use commands::{CancelFlags, DupFilesState, LargeFilesState, PerfState, SysState};
 use std::sync::{Arc, Mutex};
 use sysinfo::System;
 
@@ -36,6 +36,7 @@ fn main() {
         .manage(PerfState(Mutex::new(perf::Perf::new())))
         .manage(Arc::new(CancelFlags::default()))
         .manage(LargeFilesState::default())
+        .manage(DupFilesState::default())
         .manage(updates::PendingUpdate::default())
         .setup(move |app| {
             if scheduled {
@@ -74,6 +75,7 @@ fn main() {
             commands::clear_history,
             commands::large_files,
             commands::recycle_files,
+            commands::duplicates,
             commands::map_folder,
             commands::startup_list,
             commands::startup_set,

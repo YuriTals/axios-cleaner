@@ -28,6 +28,7 @@ export const S = {
   openDetails: null,
   details: {},         // id -> dados | "loading"
   big: { min: 500, items: null, picked: new Set(), loading: false, result: null },
+  dups: { min: 10, root: null, groups: null, picked: new Set(), loading: false, progress: null, result: null, error: "" },
   map: { home: null, root: null, data: null, loading: false, progress: null, hover: -1 },
   startup: null,
   tasks: { picked: new Set(DEFAULT_TASKS), status: {} },
@@ -48,6 +49,8 @@ export const sum = (ids, f) => ids.reduce((a, id) => a + f(id), 0);
 export const selIn = (ids) => ids.filter((id) => S.selected.has(id));
 export const selectedBytes = (ids = allIds()) => sum(selIn(ids), bytesOf);
 export const busy = () => S.run != null;
+/** Grupos de duplicados com todas as copias marcadas (nao pode: nao sobraria nenhuma). */
+export const dupGroupsFullyPicked = () => (S.dups.groups || []).filter((g) => g.files.every((f) => S.dups.picked.has(f.path)));
 /** Categorias com cache gigante, da maior para a menor. */
 export const bigCaches = () => S.cats.filter((c) => c.id !== "recycle" && bytesOf(c.id) >= BIG_CACHE_BYTES).sort((a, b) => bytesOf(b.id) - bytesOf(a.id));
 export const scanning = () => S.run?.kind === "scan";

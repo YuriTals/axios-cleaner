@@ -7,7 +7,7 @@ import { S, idsOf, selectedBytes, bytesOf } from "./state.js";
 import { drawMap } from "./canvas.js";
 import { viewHome, telemetryHtml, disksHtml } from "./views/home.js";
 import { viewGroup, viewRecycle } from "./views/cleaning.js";
-import { viewBig, viewMap, viewStartup, viewTasks } from "./views/tools.js";
+import { viewBig, viewDups, viewMap, viewStartup, viewTasks } from "./views/tools.js";
 import { viewHistory, viewSettings } from "./views/app.js";
 import { updateBadge, updateModalHtml } from "./views/update.js";
 import { appsModalHtml, quitModalHtml } from "./views/dialogs.js";
@@ -16,6 +16,7 @@ const VIEWS = {
   home: viewHome,
   recycle: viewRecycle,
   big: viewBig,
+  dups: viewDups,
   map: viewMap,
   startup: viewStartup,
   tasks: viewTasks,

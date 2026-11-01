@@ -34,6 +34,7 @@ export const CHANNELS = [
   { id: "privacy", code: "PRV", t: "Privacidade", group: "Privacidade", sub: "Rastros de uso. Os arquivos em si nunca são apagados." },
   { id: "recycle", code: "BIN", t: "Lixeira" },
   { id: "big", code: "BIG", t: "Grandes", sep: true },
+  { id: "dups", code: "DUP", t: "Duplicados" },
   { id: "map", code: "MAP", t: "Mapa" },
   { id: "startup", code: "BOOT", t: "Inicialização" },
   { id: "tasks", code: "MNT", t: "Manutenção" },
@@ -66,6 +67,7 @@ export const MAP_COLORS = ["#FF2448", "#FF6A80", "#F2F2F4", "#CDCDD2", "#ADADB3"
 export const WEEKDAYS = [["SUN", "Domingo"], ["MON", "Segunda"], ["TUE", "Terça"], ["WED", "Quarta"], ["THU", "Quinta"], ["FRI", "Sexta"], ["SAT", "Sábado"]];
 export const SCHEDULE_FREQS = [["off", "Desligada"], ["daily", "Diária"], ["weekly", "Semanal"], ["monthly", "Mensal"]];
 export const BIG_FILE_SIZES_MB = [100, 500, 1024, 5120];
+export const DUP_SIZES_MB = [1, 10, 100];
 
 /** Ids da versao 1.0, que guardava a selecao no navegador. */
 export const LEGACY_IDS = ["recycle", "usertemp", "wintemp", "winlogs", "dumps", "explorer", "onedrive", "edge", "chrome", "firefox", "brave", "vivaldi", "spotify", "adobe", "vmware", "teamviewer"];

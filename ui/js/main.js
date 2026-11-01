@@ -62,6 +62,11 @@ const CLICK = {
   clearhistory: () => { invoke("clear_history"); S.history = []; },
   pick: (path) => { toggle(S.big.picked, path); S.big.result = null; },
   bigmin: (mb) => { S.big.min = +mb; actions.loadBigFiles(); return false; },
+  dupmin: (mb) => { S.dups.min = +mb; if (S.dups.groups) actions.loadDups(); },
+  duproot: (which) => { actions.setDupRoot(which); return false; },
+  dupsearch: () => { actions.loadDups(); return false; },
+  duppick: (path) => { toggle(S.dups.picked, path); S.dups.result = null; },
+  dupmark: () => { actions.markDupCopies(); },
   maproot: (path) => { actions.loadMap(path, true); return false; },
   mapgo: (path) => { actions.loadMap(path); return false; },
   startup: (id, el) => { toggleStartup(id, el); return false; },
@@ -237,6 +242,7 @@ async function wireBackendEvents() {
   });
   await listen("sim-progress", (p) => { if (S.run?.kind === "simulate") S.run.done = p.done; patchRun(); });
   await listen("recycle-progress", (p) => { if (S.run?.kind === "recycle") S.run.done = p.done; patchRun(); });
+  await listen("dup-progress", (p) => { S.dups.progress = p; if (S.route === "dups") render(); });
   await listen("map-progress", (p) => { S.map.progress = p; if (S.route === "map") render(); });
   await listen("tray-scan", () => { S.route = "home"; actions.scan(); });
   // X, Alt+F4 ou "Sair" na bandeja. Responder logo avisa o backend que a interface nao travou.

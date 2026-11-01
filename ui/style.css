@@ -265,6 +265,7 @@ button.rb:hover { background: linear-gradient(180deg, rgba(255, 36, 72, .24), rg
 /* ---------- listas ---------- */
 .list { display: flex; flex-direction: column; gap: 4px; }
 .list > * { flex-shrink: 0; }
+.panel > .list.scroll { flex: 1; } /* a lista ocupa o painel e o rodape fica embaixo, mesmo vazia */
 .row { position: relative; display: flex; align-items: stretch; width: 100%; overflow: hidden; background: rgba(255, 255, 255, .012); border: 1px solid var(--line); border-radius: 3px; }
 .row::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: transparent; transition: background .15s; }
 .row:hover { border-color: var(--line2); background: rgba(255, 255, 255, .02); }
@@ -280,6 +281,9 @@ button.rb:hover { background: linear-gradient(180deg, rgba(255, 36, 72, .24), rg
 .row .desc { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
 .row .desc.one { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .desc.tip { color: var(--ruby-hi); margin-top: 4px; }
+.dgroup { margin-bottom: 14px; }
+.dgroup-h { display: flex; justify-content: space-between; gap: 12px; padding: 4px 2px 6px; color: var(--muted); font: 500 10px var(--mono); letter-spacing: .14em; text-transform: uppercase; }
+.dgroup.full .dgroup-h { color: var(--ruby-hi); }
 .row .size { font: 500 12px var(--mono); color: var(--text2); white-space: nowrap; }
 .check { font: 500 12.5px var(--mono); color: rgba(255, 36, 72, .7); flex: none; width: 32px; }
 .check::before { content: "[ ]"; }

@@ -1,7 +1,7 @@
 import { called, replies, reset, until } from "./fake-env.js";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { S, bigCaches, catsOf } from "../../ui/js/state.js";
+import { S, bigCaches, catsOf, dupGroupsFullyPicked } from "../../ui/js/state.js";
 import { groupApps } from "../../ui/js/format.js";
 import * as actions from "../../ui/js/actions.js";
 import { updateBadge, updateSkipped } from "../../ui/js/views/update.js";
@@ -171,6 +171,44 @@ test("simular manda as categorias marcadas e nao limpa", async () => {
   assert.deepEqual(called("simulate")[0][1], { ids: ["chrome"] });
   assert.equal(called("clean").length, 0);
   assert.equal(S.run, null);
+});
+
+// ---------------------------------------------------------------------------
+// Duplicados
+// ---------------------------------------------------------------------------
+
+const file = (path, modified) => ({ path, name: path.split("\\").pop(), folder: "", bytes: 100, modified });
+const twoGroups = () => [
+  { bytes: 100, files: [file("C:\\a\\x.jpg", 1), file("C:\\b\\x.jpg", 2), file("C:\\c\\x.jpg", 3)] },
+  { bytes: 100, files: [file("C:\\a\\y.mp4", 1), file("C:\\b\\y.mp4", 2)] },
+];
+
+test("procurar duplicados usa a pasta do usuario e o tamanho minimo", async () => {
+  S.map.home = "C:\\Users\\Teste";
+  Object.assign(S.dups, { root: null, min: 10, groups: null, loading: false, picked: new Set() });
+  replies.duplicates = twoGroups();
+  await actions.loadDups();
+  assert.deepEqual(called("duplicates")[0][1], { root: "C:\\Users\\Teste", minMb: 10 });
+  assert.equal(S.dups.groups.length, 2);
+});
+
+test("marcar copias deixa a mais antiga de cada grupo", () => {
+  S.dups.groups = twoGroups();
+  actions.markDupCopies();
+  assert.deepEqual([...S.dups.picked].sort(), ["C:\\b\\x.jpg", "C:\\b\\y.mp4", "C:\\c\\x.jpg"]);
+  assert.equal(dupGroupsFullyPicked().length, 0);
+  S.dups.picked.add("C:\\a\\y.mp4");
+  assert.equal(dupGroupsFullyPicked().length, 1, "com todas marcadas o envio fica bloqueado");
+});
+
+test("depois de enviar para a Lixeira, grupo com uma copia so some da lista", async () => {
+  S.dups.groups = twoGroups();
+  S.dups.picked = new Set(["C:\\b\\y.mp4", "C:\\c\\x.jpg"]);
+  replies.recycle_files = () => { S.run.done = 2; return [2, 200]; };
+  actions.startAction("recycle-dups");
+  await until(() => S.run === null);
+  assert.deepEqual(S.dups.groups.map((g) => g.files.length), [2], "x.jpg ficou com 2 copias; y.mp4 com 1 sai");
+  assert.equal(S.dups.picked.size, 0);
 });
 
 // ---------------------------------------------------------------------------
