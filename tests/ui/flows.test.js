@@ -1,7 +1,7 @@
 import { called, replies, reset, until } from "./fake-env.js";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { S } from "../../ui/js/state.js";
+import { S, bigCaches } from "../../ui/js/state.js";
 import { groupApps } from "../../ui/js/format.js";
 import * as actions from "../../ui/js/actions.js";
 import { updateBadge, updateSkipped } from "../../ui/js/views/update.js";
@@ -86,6 +86,37 @@ test("sair com limpeza rodando cancela e espera ela terminar", async () => {
   S.run = null; // a limpeza terminou
   await quitting;
   assert.equal(called("quit_app").length, 1);
+});
+
+// ---------------------------------------------------------------------------
+// Tamanho da interface e cache gigante
+// ---------------------------------------------------------------------------
+
+test("Ctrl + sobe um nivel e Ctrl 0 volta a 100%", async () => {
+  replies.set_zoom = ({ zoom }) => zoom;
+  S.settings.zoom = 1;
+  actions.stepZoom(1);
+  await until(() => S.settings.zoom === 1.15);
+  actions.stepZoom(1);
+  await until(() => S.settings.zoom === 1.3);
+  actions.stepZoom(1); // ja esta no maximo
+  actions.stepZoom(0);
+  await until(() => S.settings.zoom === 1);
+  assert.deepEqual(called("set_zoom").map(([, a]) => a.zoom), [1.15, 1.3, 1]);
+});
+
+test("se o monitor nao comporta o zoom, avisa o maximo", async () => {
+  replies.set_zoom = 1.15;
+  await actions.setZoom(1.3);
+  assert.equal(S.settings.zoom, 1.15);
+  assert.match(S.zoomMsg, /115%/);
+});
+
+test("cache gigante: so categorias a partir de 5 GB, da maior para a menor", () => {
+  const GB = 1024 ** 3;
+  S.cats = [CHROME, { ...CHROME, id: "shaders" }, { ...CHROME, id: "recycle" }, { ...CHROME, id: "npm" }];
+  S.scan = { chrome: { bytes: 4 * GB }, shaders: { bytes: 25 * GB }, recycle: { bytes: 50 * GB }, npm: { bytes: 6 * GB } };
+  assert.deepEqual(bigCaches().map((c) => c.id), ["shaders", "npm"]);
 });
 
 // ---------------------------------------------------------------------------

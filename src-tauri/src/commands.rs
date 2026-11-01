@@ -247,6 +247,12 @@ pub fn quit_app(app: AppHandle) {
     app.exit(0);
 }
 
+/// Muda o tamanho da interface; devolve o nivel que coube no monitor.
+#[tauri::command]
+pub fn set_zoom(window: tauri::WebviewWindow, zoom: f64) -> f64 {
+    shell::apply_zoom(&window, zoom)
+}
+
 #[tauri::command]
 pub fn set_tray_tooltip(app: AppHandle, text: String) {
     if let Some(tray) = app.tray_by_id(shell::TRAY_ID) {

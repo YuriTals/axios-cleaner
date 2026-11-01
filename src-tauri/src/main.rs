@@ -62,6 +62,7 @@ fn main() {
             commands::running_apps,
             commands::quit_ack,
             commands::quit_app,
+            commands::set_zoom,
             commands::set_tray_tooltip,
             commands::get_config,
             commands::save_config,

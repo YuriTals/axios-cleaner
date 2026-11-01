@@ -1,6 +1,6 @@
 // Acoes que conversam com o backend: varrer, limpar, manutencao, ferramentas.
 
-import { TASKS, taskById } from "./catalog.js";
+import { TASKS, ZOOM_LEVELS, taskById } from "./catalog.js";
 import { esc, fmt, groupApps, plural } from "./format.js";
 import { S, allIds, busy, filesOf, idsOf, saveConfig, selIn, selectedBytes } from "./state.js";
 import { invoke } from "./tauri.js";
@@ -246,6 +246,27 @@ async function installUpdate() {
     S.run = null;
     render();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Tamanho da interface
+// ---------------------------------------------------------------------------
+
+/** Aplica o zoom; o backend devolve o maior nivel que cabe no monitor. */
+export async function setZoom(zoom) {
+  const applied = await invoke("set_zoom", { zoom });
+  S.settings.zoom = applied;
+  S.zoomMsg = applied < zoom ? `Seu monitor comporta no máximo ${Math.round(applied * 100)}%.` : "";
+  saveConfig();
+  render();
+}
+
+/** Ctrl + / Ctrl -: proximo ou anterior; Ctrl 0: volta a 100%. */
+export function stepZoom(dir) {
+  const levels = ZOOM_LEVELS.map(([z]) => z);
+  const i = levels.findIndex((z) => z >= (S.settings.zoom || 1) - 0.001);
+  const next = dir === 0 ? 1 : levels[Math.max(0, Math.min(levels.length - 1, i + dir))];
+  if (next !== S.settings.zoom) setZoom(next);
 }
 
 /** Disparado quando o usuario termina de segurar um botao de execucao. */

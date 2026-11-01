@@ -1,5 +1,6 @@
 // Telas de limpeza: grupos de categorias e Lixeira.
 
+import { BIG_CACHE_BYTES, BIG_CACHE_TIP, BIG_CACHE_TIPS } from "../catalog.js";
 import { esc, fmt, nf, plural } from "../format.js";
 import { S, busy, catsOf, filesOf, scanning, selIn, sum, bytesOf } from "../state.js";
 import { actionBar, bigNumber, cleanNote, panelHeader } from "../widgets.js";
@@ -30,13 +31,16 @@ function categoryRow(c) {
   const open = S.openDetails === c.id;
   const openTag = (S.scan[c.id]?.running || []).length ? `<span class="tag">ABERTO</span>` : "";
   const serviceTag = c.services.length ? `<span class="tag soft">PAUSA SERVIÇO</span>` : "";
+  const big = bytesOf(c.id) >= BIG_CACHE_BYTES;
+  const bigTag = big ? `<span class="tag">GRANDE</span>` : "";
+  const tip = big ? `<span class="desc tip">! ${esc(BIG_CACHE_TIPS[c.id] || BIG_CACHE_TIP)}</span>` : "";
   return `
     <div class="row ${state}" aria-checked="${on}">
       <button class="row-main" role="checkbox" aria-checked="${on}" data-toggle="${c.id}">
         <span class="check"></span>
         <span class="main">
-          <span class="name">${esc(c.name)}${openTag}${serviceTag}</span>
-          <span class="desc">${esc(c.desc)}</span>
+          <span class="name">${esc(c.name)}${bigTag}${openTag}${serviceTag}</span>
+          <span class="desc">${esc(c.desc)}</span>${tip}
         </span>
         <span class="size">${size}</span>
       </button>

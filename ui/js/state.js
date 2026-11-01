@@ -1,6 +1,6 @@
 // Estado da interface e consultas sobre ele.
 
-import { AREA_COLORS, CHANNELS, DEFAULT_SETTINGS, DEFAULT_TASKS, LEGACY_IDS } from "./catalog.js";
+import { AREA_COLORS, BIG_CACHE_BYTES, CHANNELS, DEFAULT_SETTINGS, DEFAULT_TASKS, LEGACY_IDS } from "./catalog.js";
 import { invoke } from "./tauri.js";
 
 export const S = {
@@ -46,6 +46,8 @@ export const sum = (ids, f) => ids.reduce((a, id) => a + f(id), 0);
 export const selIn = (ids) => ids.filter((id) => S.selected.has(id));
 export const selectedBytes = (ids = allIds()) => sum(selIn(ids), bytesOf);
 export const busy = () => S.run != null;
+/** Categorias com cache gigante, da maior para a menor. */
+export const bigCaches = () => S.cats.filter((c) => c.id !== "recycle" && bytesOf(c.id) >= BIG_CACHE_BYTES).sort((a, b) => bytesOf(b.id) - bytesOf(a.id));
 export const scanning = () => S.run?.kind === "scan";
 
 /** Areas do inicio: cada grupo de limpeza + Lixeira, com o total selecionado. */

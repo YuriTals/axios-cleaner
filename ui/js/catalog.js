@@ -2,7 +2,20 @@
 
 export const VERSION = "1.2.3";
 
-export const DEFAULT_SETTINGS = { closeApps: true, autoScan: true, restorePoint: false, closeToTray: false, confirmClose: true, updateCheck: true, protectRecent: true };
+export const DEFAULT_SETTINGS = { closeApps: true, autoScan: true, restorePoint: false, closeToTray: false, confirmClose: true, updateCheck: true, protectRecent: true, zoom: 1 };
+
+/** A partir deste tamanho a categoria ganha o aviso de cache gigante. */
+export const BIG_CACHE_BYTES = 5 * 1024 ** 3;
+export const BIG_CACHE_TIP = "Esse cache volta a crescer com o uso. Se enche rápido, a limpeza agendada (Ajustes) mantém o tamanho sob controle.";
+export const BIG_CACHE_TIPS = {
+  shaders: "Cresce sem limite quando o driver de vídeo deixa o cache em “Ilimitado”. No Painel de Controle da NVIDIA (Gerenciar as configurações 3D › Tamanho do cache do sombreador) ou nas configurações de gráficos do AMD Software, escolha um limite, por exemplo 10 GB. Limpar faz os jogos engasgarem um pouco no começo.",
+  winupdate: "São instaladores de atualizações já aplicadas. Se precisar de algum, o Windows baixa de novo.",
+  dumps: "Muitos dumps indicam um programa travando com frequência. Veja quais são em [+] › Maiores arquivos.",
+  wer: "Muitos relatórios de erro indicam travamentos frequentes, às vezes de driver.",
+};
+
+/** Tamanhos da interface (iguais a shell::ZOOM_LEVELS no Rust). */
+export const ZOOM_LEVELS = [[1, "100%"], [1.15, "115%"], [1.3, "130%"]];
 
 /** Ajustes que mudam o que a varredura conta: trocar um deles analisa de novo. */
 export const RESCAN_SETTINGS = ["protectRecent"];

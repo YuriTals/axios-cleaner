@@ -1,6 +1,6 @@
 // Telas do app: historico e ajustes.
 
-import { CHANNELS, SCHEDULE_FREQS, VERSION, WEEKDAYS } from "../catalog.js";
+import { CHANNELS, SCHEDULE_FREQS, VERSION, WEEKDAYS, ZOOM_LEVELS } from "../catalog.js";
 import { esc, fmt, plural } from "../format.js";
 import { S, catsOf } from "../state.js";
 import { bigNumber, empty, panelHeader, switchRow } from "../widgets.js";
@@ -87,6 +87,15 @@ function scheduleSection() {
     <div class="sched-msg ${tone}">${esc(message)}</div>`;
 }
 
+function appearanceSection() {
+  const current = S.settings.zoom || 1;
+  const chips = ZOOM_LEVELS.map(([z, label]) => `<button data-zoom="${z}" aria-pressed="${Math.abs(current - z) < 0.001}">${label}</button>`).join("");
+  return `
+    <div class="dh">Aparência</div>
+    <div class="sched"><span class="sched-label">Tamanho da interface</span><div class="toggle">${chips}</div></div>
+    <div class="sched-msg">${esc(S.zoomMsg || "Atalhos: Ctrl + e Ctrl − mudam o tamanho, Ctrl 0 volta a 100%.")}</div>`;
+}
+
 function updatesSection() {
   const [tone, text] = updateStatus();
   const toggle = switchRow({
@@ -114,6 +123,7 @@ export function viewSettings() {
     <section class="panel">
       ${panelHeader("settings", "Ajustes")}
       <div class="scroll settings">
+        ${appearanceSection()}
         <div class="dh">Comportamento</div>
         <div class="list">${behavior}${adminRow()}</div>
         ${scheduleSection()}

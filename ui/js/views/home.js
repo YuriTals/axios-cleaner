@@ -1,8 +1,9 @@
 // Tela inicial: nucleo ASCII, lixo por area, telemetria e unidades.
 
+import { CHANNELS } from "../catalog.js";
 import { asciiChart, esc, fmt, nf, plural } from "../format.js";
 import { runButton } from "../run.js";
-import { S, allIds, areas, busy, filesOf, scanning, selIn, selectedBytes, sum } from "../state.js";
+import { S, allIds, areas, bigCaches, busy, bytesOf, filesOf, scanning, selIn, selectedBytes, sum } from "../state.js";
 import { bigNumber, cleanNote } from "../widgets.js";
 
 const HOT_PERCENT = 88;
@@ -22,6 +23,16 @@ function areaList(scanned) {
     </button>`).join("");
 }
 
+/** Avisos de cache gigante: levam para a tela da categoria, com a dica. */
+function bigCacheWarnings() {
+  const list = bigCaches();
+  if (!list.length || scanning()) return "";
+  return `<div class="hwarns">${list.map((c) => {
+    const route = CHANNELS.find((ch) => ch.group === c.group)?.id || "home";
+    return `<button class="hwarn" data-go="${route}" title="Ver dica"><span>!</span> ${esc(c.name)} · <b>${fmt(bytesOf(c.id))}</b></button>`;
+  }).join("")}</div>`;
+}
+
 function coreCaption(scanned) {
   if (scanning()) return ["Analisando", `analisando ${S.run.done}/${S.run.total}`];
   if (scanned) return ["Lixo detectado", plural(sum(selIn(allIds()), filesOf), "item", "itens")];
@@ -37,6 +48,7 @@ export function viewHome() {
     <section class="home-l">
       <div class="hhead"><span class="mono">Lixo por área</span><span class="ph-dots"></span></div>
       ${areaList(scanned)}
+      ${bigCacheWarnings()}
       <div class="hfoot">scan <b>${time}</b> · ${S.scanSecs ? `${S.scanSecs}s` : "--"}<br>
         <button class="linkbtn mono rescan" data-rescan ${busy() ? "disabled" : ""}>&gt; Analisar de novo</button></div>
     </section>

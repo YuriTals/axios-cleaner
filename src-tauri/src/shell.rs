@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Emitter, Manager, WebviewWindowBuilder, WindowEvent};
+use tauri::{AppHandle, Emitter, LogicalSize, Manager, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 
 pub const MAIN_WINDOW: &str = "main";
 pub const TRAY_ID: &str = "main";
@@ -45,11 +45,47 @@ pub fn request_quit(app: &AppHandle) {
     let _ = app.emit("quit-requested", ());
 }
 
+/// Tamanhos de interface aceitos (Ajustes › Tamanho da interface).
+pub const ZOOM_LEVELS: [f64; 3] = [1.0, 1.15, 1.3];
+
+/// Aplica o zoom e aumenta o tamanho minimo da janela na mesma proporcao,
+/// para o layout nao quebrar. Se o monitor nao comporta o nivel pedido, usa
+/// o maior que cabe. Devolve o nivel aplicado.
+pub fn apply_zoom(window: &WebviewWindow, requested: f64) -> f64 {
+    let base = &window.app_handle().config().app.windows[0];
+    let (min_w, min_h) = (base.min_width.unwrap_or(940.0), base.min_height.unwrap_or(640.0));
+    let fits = window.current_monitor().ok().flatten().map(|m| {
+        let area = m.work_area().size.to_logical::<f64>(m.scale_factor());
+        (area.width / min_w).min(area.height / min_h)
+    });
+    let zoom = ZOOM_LEVELS
+        .iter()
+        .copied()
+        .filter(|z| *z <= requested + f64::EPSILON && fits.map_or(true, |max| *z <= max))
+        .fold(1.0, f64::max);
+
+    let _ = window.set_zoom(zoom);
+    let min = LogicalSize::new(min_w * zoom, min_h * zoom);
+    let _ = window.set_min_size(Some(min));
+    if let (Ok(size), Ok(scale)) = (window.inner_size(), window.scale_factor()) {
+        let now = size.to_logical::<f64>(scale);
+        if now.width < min.width || now.height < min.height {
+            let _ = window.set_size(LogicalSize::new(now.width.max(min.width), now.height.max(min.height)));
+            let _ = window.center();
+        }
+    }
+    zoom
+}
+
 /// Cria a janela principal. Fechar a janela (X ou Alt+F4) so a esconde com
 /// "fechar para a bandeja" ligado; sem ele, vira um pedido de saida.
 pub fn create_main_window(app: &AppHandle) -> tauri::Result<()> {
     let config = app.config().app.windows[0].clone();
     let window = WebviewWindowBuilder::from_config(app, &config)?.on_navigation(is_app_url).build()?;
+    let zoom = store::load_config()["settings"]["zoom"].as_f64().unwrap_or(1.0);
+    if zoom != 1.0 {
+        apply_zoom(&window, zoom);
+    }
     let handle = window.clone();
     window.on_window_event(move |event| {
         if let WindowEvent::CloseRequested { api, .. } = event {

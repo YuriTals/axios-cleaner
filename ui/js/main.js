@@ -69,6 +69,7 @@ const CLICK = {
     S.schedule.msg = "Clique em Salvar para aplicar.";
   },
   schsave: () => { actions.saveSchedule(); return false; },
+  zoom: (z) => { actions.setZoom(+z); return false; },
   openupdate: () => { S.update.open = true; },
   closeupdate: (mode) => { actions.dismissUpdate(mode === "skip"); },
   apps: (answer) => { actions.answerApps(answer); return false; },
@@ -168,6 +169,10 @@ function wireInput() {
     }
     if (modalOpen()) trapModalFocus(e);
     if (e.key === "Escape") closeModalWithEsc();
+    if (e.ctrlKey && !e.altKey) {
+      const dir = { "+": 1, "=": 1, "-": -1, "0": 0 }[e.key];
+      if (dir !== undefined) { e.preventDefault(); actions.stepZoom(dir); }
+    }
     // Sem recarregar a janela, para parecer app nativo.
     if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) e.preventDefault();
   });
