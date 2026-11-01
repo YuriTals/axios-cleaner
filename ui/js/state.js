@@ -37,7 +37,9 @@ export const S = {
   askApps: null,       // { action, apps }: pergunta se pode fechar apps antes de limpar
 };
 
-export const catsOf = (group) => S.cats.filter((c) => c.group === group && c.id !== "recycle");
+/** "Pastas extras" so aparece depois que o usuario adiciona alguma em Ajustes. */
+const visible = (c) => c.id !== "recycle" && (c.id !== "custom" || (S.config.custom || []).length > 0);
+export const catsOf = (group) => S.cats.filter((c) => c.group === group && visible(c));
 export const idsOf = (group) => catsOf(group).map((c) => c.id);
 export const allIds = () => S.cats.map((c) => c.id);
 export const bytesOf = (id) => S.scan[id]?.bytes || 0;

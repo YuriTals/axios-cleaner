@@ -8,12 +8,13 @@
 
 use crate::rules::{self, Category, Kind, Rule};
 use serde::Serialize;
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant, SystemTime};
 
 const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
@@ -231,6 +232,8 @@ pub struct Policy {
     pub min_temp_age: Option<Duration>,
     /// Pastas e arquivos que nunca sao apagados (minusculas, sem `\` no fim).
     pub exclude: Vec<String>,
+    /// Pastas extras para limpar, ja validadas por `check_custom_folder`.
+    pub custom: Vec<String>,
 }
 
 pub fn normalize_path(p: &str) -> String {
@@ -244,7 +247,11 @@ impl Policy {
             .as_array()
             .map(|a| a.iter().filter_map(|v| v.as_str()).map(normalize_path).filter(|p| !p.is_empty()).collect())
             .unwrap_or_default();
-        Policy { min_temp_age: protect.then_some(RECENT_TEMP_AGE), exclude }
+        let custom = cfg["custom"]
+            .as_array()
+            .map(|a| a.iter().filter_map(|v| v.as_str()).filter_map(|p| check_custom_folder(p).ok()).collect())
+            .unwrap_or_default();
+        Policy { min_temp_age: protect.then_some(RECENT_TEMP_AGE), exclude, custom }
     }
 
     pub fn load() -> Self {
@@ -268,6 +275,66 @@ impl Policy {
         }
         self.is_excluded(path)
     }
+}
+
+/// Regras de uma categoria; as das "Pastas extras" vem da configuracao.
+fn rules_for<'a>(cat: &'a Category, policy: &Policy) -> Cow<'a, [Rule]> {
+    match cat.kind {
+        Kind::Custom => Cow::Owned(policy.custom.iter().map(|p| Rule { base: intern(p), pattern: "*", recursive: true, prune: true }).collect()),
+        _ => Cow::Borrowed(&cat.rules),
+    }
+}
+
+/// `Rule` guarda `&'static str`: cada pasta extra e alocada uma vez so.
+fn intern(s: &str) -> &'static str {
+    static SEEN: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
+    let mut seen = SEEN.get_or_init(Default::default).lock().unwrap();
+    if let Some(found) = seen.get(s) {
+        return found;
+    }
+    let leaked: &'static str = Box::leak(s.to_string().into_boxed_str());
+    seen.insert(leaked);
+    leaked
+}
+
+/// Pastas pessoais e do sistema: nem elas nem uma pasta acima delas viram "pasta extra".
+fn protected_folders() -> Vec<String> {
+    const PERSONAL: [&str; 12] = [
+        "", "Desktop", "Documents", "Downloads", "Pictures", "Music", "Videos", "OneDrive",
+        "AppData", "AppData\\Local", "AppData\\Roaming", "AppData\\LocalLow",
+    ];
+    let mut list = vec![env("ProgramData", "C:\\ProgramData"), format!("{}\\Users", env("SystemDrive", "C:"))];
+    for user in user_dirs() {
+        list.extend(PERSONAL.iter().map(|sub| user.join(sub).to_string_lossy().into_owned()));
+    }
+    list.iter().map(|p| normalize_path(p)).collect()
+}
+
+/// Valida uma pasta extra. O app roda como admin, entao so aceita pastas
+/// especificas: nada do Windows, de programas, raiz de disco ou pastas pessoais.
+pub fn check_custom_folder(path: &str) -> Result<String, String> {
+    let trimmed = path.trim().trim_end_matches(['\\', '/']);
+    let p = PathBuf::from(trimmed);
+    if !p.is_absolute() {
+        return Err("Use o caminho completo da pasta, como D:\\Downloads\\temp.".into());
+    }
+    if !p.is_dir() {
+        return Err("Pasta não encontrada.".into());
+    }
+    if !is_direct_path(&p) {
+        return Err("Atalhos de pasta (junctions e links) não são aceitos.".into());
+    }
+    let n = normalize_path(trimmed);
+    let inside = |root: &str| n == root || n.starts_with(&format!("{root}\\"));
+    let system = [env("SystemRoot", "C:\\Windows"), env("ProgramFiles", "C:\\Program Files"), env("ProgramFiles(x86)", "C:\\Program Files (x86)")];
+    if system.iter().any(|t| inside(&normalize_path(t))) {
+        return Err("Pastas do Windows e de programas são protegidas.".into());
+    }
+    let above = |q: &String| *q == n || q.starts_with(&format!("{n}\\"));
+    if p.parent().is_none() || protected_folders().iter().any(above) {
+        return Err("Essa pasta guarda arquivos pessoais ou do sistema. Escolha uma subpasta mais específica.".into());
+    }
+    Ok(trimmed.to_string())
 }
 
 /// Criado ou alterado ha menos de `age` (datas ilegiveis contam como antigas).
@@ -327,8 +394,8 @@ pub fn scan(policy: &Policy, running: &dyn Fn(&[&str]) -> Vec<String>, mut on_it
         let (mut bytes, mut files) = (0u64, 0u64);
         match cat.kind {
             Kind::RecycleBin => (bytes, files) = recycle_bin_info(),
-            Kind::Files => {
-                for rule in &cat.rules {
+            Kind::Files | Kind::Custom => {
+                for rule in rules_for(cat, policy).iter() {
                     for_each_match(cat, rule, &users, policy, &NEVER, &mut |_, path, md| {
                         if seen.insert(path) {
                             bytes += md.len();
@@ -377,7 +444,7 @@ pub fn details(cat: &Category, policy: &Policy) -> Details {
     let users = user_dirs();
     let mut locs: HashMap<PathBuf, (u64, u64)> = HashMap::new();
     let mut largest: Vec<BigFile> = Vec::new();
-    for rule in &cat.rules {
+    for rule in rules_for(cat, policy).iter() {
         for_each_match(cat, rule, &users, policy, &NEVER, &mut |base, path, md| {
             let e = locs.entry(base.to_path_buf()).or_default();
             e.0 += md.len();
@@ -457,6 +524,22 @@ pub fn empty_recycle_bin() -> bool {
     unsafe { SHEmptyRecycleBinW(std::ptr::null_mut(), std::ptr::null(), FLAGS) == 0 }
 }
 
+/// O que a limpeza de uma categoria apagaria: arquivos e tamanho, sem tocar em nada.
+/// `seen` evita contar duas vezes um arquivo coberto por mais de uma categoria.
+pub fn simulate_category(cat: &Category, policy: &Policy, seen: &mut HashSet<PathBuf>, stop: &AtomicBool) -> Vec<BigFile> {
+    let users = user_dirs();
+    let mut out = Vec::new();
+    for rule in rules_for(cat, policy).iter() {
+        for_each_match(cat, rule, &users, policy, stop, &mut |_, path, md| {
+            if seen.insert(path.clone()) {
+                out.push(BigFile { path: path.to_string_lossy().into_owned(), bytes: md.len() });
+            }
+        });
+    }
+    out.sort_by(|a, b| b.bytes.cmp(&a.bytes));
+    out
+}
+
 /// Quantos arquivos pulados entram no log de cada categoria.
 const MAX_SKIPPED_LOG: usize = 300;
 
@@ -472,11 +555,11 @@ pub fn clean_category(cat: &Category, policy: &Policy, stop: &AtomicBool, progre
                 res.files = files;
             }
         }
-        Kind::Files => {
+        Kind::Files | Kind::Custom => {
             let users = user_dirs();
             let mut last = Instant::now();
             let mut guards: HashMap<PathBuf, Option<Containment>> = HashMap::new();
-            for rule in &cat.rules {
+            for rule in rules_for(cat, policy).iter() {
                 for_each_match(cat, rule, &users, policy, stop, &mut |base, path, md| {
                     let guard = guards.entry(base.to_path_buf()).or_insert_with(|| Containment::new(base));
                     let allowed = guard.as_mut().is_some_and(|g| g.allows(&path));
@@ -611,7 +694,7 @@ mod tests {
         let root = fixture("recent");
         let mut cat = test_cat(&root.join("alvo").to_string_lossy());
         cat.id = "usertemp"; // so as pastas Temp protegem os recentes
-        let policy = super::Policy { min_temp_age: Some(super::RECENT_TEMP_AGE), exclude: vec![] };
+        let policy = super::Policy { min_temp_age: Some(super::RECENT_TEMP_AGE), ..Default::default() };
         let stop = AtomicBool::new(false);
         let res = super::clean_category(&cat, &policy, &stop, &|_, _| {});
         assert_eq!(res.files, 0, "arquivos recem-criados ficam");
@@ -630,12 +713,52 @@ mod tests {
         let root = fixture("exclude");
         let cat = test_cat(&root.join("alvo").to_string_lossy());
         let excluded = super::normalize_path(&root.join("alvo/a").to_string_lossy());
-        let policy = super::Policy { min_temp_age: None, exclude: vec![excluded] };
+        let policy = super::Policy { exclude: vec![excluded], ..Default::default() };
         assert!(!policy.is_excluded(&root.join("alvo/ab")), "prefixo de nome nao e a mesma pasta");
         let stop = AtomicBool::new(false);
         let res = super::clean_category(&cat, &policy, &stop, &|_, _| {});
         assert_eq!(res.files, 1, "so o x.log, fora da pasta excluida");
         assert!(root.join("alvo/a/b/y.tmp").exists(), "arquivo dentro da pasta excluida fica");
+        let _ = std::fs::remove_dir(root.join("alvo/atalho"));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn custom_folders_must_be_specific() {
+        let home = std::env::var("USERPROFILE").unwrap();
+        let win = std::env::var("SystemRoot").unwrap();
+        for bad in ["C:\\", "relativa\\pasta", &win, &format!("{win}\\Temp"), "C:\\Program Files\\Algo", "C:\\Users", &home, &format!("{home}\\Documents"), &format!("{home}\\AppData")] {
+            assert!(super::check_custom_folder(bad).is_err(), "deveria recusar {bad}");
+        }
+        let root = fixture("custom");
+        let ok = root.join("alvo").to_string_lossy().replace('/', "\\");
+        assert_eq!(super::check_custom_folder(&format!("{ok}\\")), Ok(ok.clone()), "aceita subpasta comum e tira a barra do fim");
+        assert!(super::check_custom_folder(&root.join("alvo/atalho").to_string_lossy().replace('/', "\\")).is_err(), "recusa junction");
+        assert!(super::check_custom_folder(&root.join("nao-existe").to_string_lossy()).is_err());
+
+        // a categoria "Pastas extras" limpa so o que a politica traz
+        let custom = super::find("custom").unwrap();
+        let policy = super::Policy { custom: vec![ok], ..Default::default() };
+        let stop = std::sync::atomic::AtomicBool::new(false);
+        let res = super::clean_category(custom, &policy, &stop, &|_, _| {});
+        assert_eq!(res.files, 2);
+        assert!(root.join("alvo").is_dir() && root.join("fora/importante.txt").exists());
+        assert_eq!(super::clean_category(custom, &super::Policy::default(), &stop, &|_, _| {}).files, 0, "sem pastas, nada");
+        let _ = std::fs::remove_dir(root.join("alvo/atalho"));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn simulation_lists_without_deleting() {
+        use std::sync::atomic::AtomicBool;
+        let root = fixture("simulate");
+        let cat = test_cat(&root.join("alvo").to_string_lossy());
+        let mut seen = std::collections::HashSet::new();
+        let stop = AtomicBool::new(false);
+        let files = super::simulate_category(&cat, &super::Policy::default(), &mut seen, &stop);
+        assert_eq!(files.iter().map(|f| f.bytes).collect::<Vec<_>>(), vec![5, 3], "do maior para o menor");
+        assert!(root.join("alvo/x.log").exists() && root.join("alvo/a/b/y.tmp").exists(), "nada e apagado");
+        assert!(super::simulate_category(&cat, &super::Policy::default(), &mut seen, &stop).is_empty(), "arquivo ja contado nao repete");
         let _ = std::fs::remove_dir(root.join("alvo/atalho"));
         let _ = std::fs::remove_dir_all(&root);
     }

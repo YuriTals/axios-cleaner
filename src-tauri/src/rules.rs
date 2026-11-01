@@ -15,6 +15,7 @@
 //! As categorias depois de "TeamViewer" nao fazem parte do script original:
 //! sao caches e logs que os programas recriam sozinhos.
 
+#[derive(Clone)]
 pub struct Rule {
     pub base: &'static str,
     pub pattern: &'static str,
@@ -26,6 +27,8 @@ pub struct Rule {
 pub enum Kind {
     RecycleBin,
     Files,
+    /// Pastas que o usuario adicionou em Ajustes (regras montadas em `engine::Policy`).
+    Custom,
 }
 
 pub struct Category {
@@ -76,6 +79,14 @@ fn cat(
 /// Esvazia as pastas de cache de um app Electron/WebView2.
 fn electron(base: &'static str) -> Vec<Rule> {
     ["Cache", "Code Cache", "GPUCache", "Service Worker\\CacheStorage", "Service Worker\\ScriptCache"]
+        .iter()
+        .map(|sub| wipe(Box::leak(format!("{base}\\{sub}").into_boxed_str())))
+        .collect()
+}
+
+/// So os caches de rede, codigo e GPU de uma WebView (sem Service Workers).
+fn webview_caches(base: &'static str) -> Vec<Rule> {
+    ["Cache", "Code Cache", "GPUCache"]
         .iter()
         .map(|sub| wipe(Box::leak(format!("{base}\\{sub}").into_boxed_str())))
         .collect()
@@ -450,6 +461,37 @@ pub fn categories() -> Vec<Category> {
                 v.push(wipe("{user}\\AppData\\Roaming\\Code*\\logs"));
                 v
             }),
+        cat("whatsapp", "Aplicativos", "WhatsApp", "Cache de imagens, vídeos e código do app. Conversas e mídias salvas ficam.",
+            &["WhatsApp.Root.exe", "WhatsApp.exe"],
+            {
+                const WEBVIEW: &str = "{user}\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_*\\LocalCache\\EBWebView";
+                let mut v = webview_caches(Box::leak(format!("{WEBVIEW}\\{{profile}}").into_boxed_str()));
+                for sub in ["GrShaderCache", "ShaderCache", "GraphiteDawnCache"] {
+                    v.push(wipe(Box::leak(format!("{WEBVIEW}\\{sub}").into_boxed_str())));
+                }
+                v.extend(webview_caches("{user}\\AppData\\Roaming\\WhatsApp")); // versao antiga (Electron)
+                v
+            }),
+        cat("telegram", "Aplicativos", "Telegram", "Cache de mídia e imagens. As conversas ficam na nuvem, e o que você abrir é baixado de novo.",
+            &["Telegram.exe"],
+            vec![
+                wipe("{user}\\AppData\\Roaming\\Telegram Desktop\\tdata\\user_data\\cache"),
+                wipe("{user}\\AppData\\Roaming\\Telegram Desktop\\tdata\\user_data\\media_cache"),
+                wipe("{user}\\AppData\\Roaming\\Telegram Desktop\\tdata\\temp"),
+                wipe("{user}\\AppData\\Roaming\\Telegram Desktop\\tdata\\dumps"),
+            ]),
+        // O Office nao e fechado: forcar o Word com documento sem salvar perderia o trabalho.
+        Category {
+            default_on: false,
+            ..cat("office", "Aplicativos", "Microsoft Office",
+                "Cache de suplementos, cópias temporárias e telemetria. Documentos e a fila de envio do OneDrive ficam. Com o Office aberto, arquivos em uso são pulados.",
+                &[],
+                vec![
+                    wipe("{user}\\AppData\\Local\\Microsoft\\Office\\16.0\\Wef"),
+                    wipe("{user}\\AppData\\Local\\Microsoft\\Windows\\INetCache\\Content.MSO"),
+                    wipe("{user}\\AppData\\Local\\Microsoft\\Office\\OTele"),
+                ])
+        },
         cat("zoom", "Aplicativos", "Zoom", "Logs do Zoom.", &[],
             vec![wipe("{user}\\AppData\\Roaming\\Zoom\\logs")]),
         cat("storeapps", "Aplicativos", "Apps da Microsoft Store", "Cache de internet e pasta temporária de cada app da Store.",
@@ -519,5 +561,17 @@ pub fn categories() -> Vec<Category> {
                 wipe("{user}\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\AutomaticDestinations"),
                 wipe("{user}\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\CustomDestinations"),
             ]),
+
+        Category {
+            id: "custom",
+            group: "Sistema",
+            name: "Pastas extras",
+            desc: "Pastas que você adicionou em Ajustes. Todo o conteúdo é apagado; a pasta em si fica.",
+            processes: &[],
+            services: &[],
+            kind: Kind::Custom,
+            rules: vec![],
+            default_on: true,
+        },
     ]
 }

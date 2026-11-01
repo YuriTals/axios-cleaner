@@ -322,6 +322,12 @@ select:focus, input:focus { outline: 1px solid rgba(255, 36, 72, .7); }
 .sched { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .sched-msg { color: var(--muted); font-size: 12px; margin-top: 8px; }
 .sched-label { color: var(--text2); font-size: 13px; }
+.sub-s { color: var(--muted); font-size: 12px; margin: -4px 0 8px; }
+.row .name.path-name { font: 400 12px var(--mono); letter-spacing: 0; text-transform: none; word-break: break-all; color: var(--text2); }
+.simlink { display: block; margin-top: 6px; font-size: 9.5px; }
+.ab-info .simlink::before { content: none; }
+.simlink:disabled { opacity: .4; cursor: default; }
+.home-act .simlink { margin: 6px auto 0; }
 .sched-msg.on { color: var(--ok); }
 .sched-msg.off { color: var(--ruby-hi); }
 .rescan { font-size: 10px; letter-spacing: .14em; color: var(--text2); padding: 2px 0; }

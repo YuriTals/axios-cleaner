@@ -127,6 +127,18 @@ pub async fn clean(app: AppHandle, flags: Flags<'_>, opts: CleanOpts) -> Result<
     .await
 }
 
+/// Simula a limpeza (usa o mesmo sinal de cancelamento dela).
+#[tauri::command]
+pub async fn simulate(app: AppHandle, flags: Flags<'_>, ids: Vec<String>) -> Result<pipeline::SimSummary, String> {
+    let flags = flags.inner().clone();
+    blocking(move || {
+        pipeline::run_simulation(&ids, flags.begin(Job::Clean), &|event, payload| {
+            let _ = app.emit(event, payload);
+        })
+    })
+    .await
+}
+
 #[tauri::command]
 pub fn cancel(flags: Flags<'_>, job: Job) {
     flags.flag(job).store(true, Ordering::Relaxed);
@@ -282,6 +294,28 @@ pub fn get_history() -> Value {
 #[tauri::command]
 pub fn clear_history() {
     store::clear_history()
+}
+
+/// Confere uma pasta extra antes de a interface salvar (ver `engine::check_custom_folder`).
+#[tauri::command]
+pub fn check_custom_folder(path: String) -> Result<String, String> {
+    engine::check_custom_folder(&path)
+}
+
+/// Janela do Windows para escolher uma pasta ou um arquivo.
+#[tauri::command]
+pub async fn pick_path(app: AppHandle, folder: bool) -> Result<Option<String>, String> {
+    use tauri::Manager;
+    use tauri_plugin_dialog::DialogExt;
+    blocking(move || {
+        let mut dialog = app.dialog().file();
+        if let Some(window) = app.get_webview_window(shell::MAIN_WINDOW) {
+            dialog = dialog.set_parent(&window);
+        }
+        let picked = if folder { dialog.blocking_pick_folder() } else { dialog.blocking_pick_file() };
+        picked.and_then(|p| p.into_path().ok()).map(|p| p.to_string_lossy().into_owned())
+    })
+    .await
 }
 
 #[tauri::command]

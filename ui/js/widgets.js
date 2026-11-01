@@ -43,14 +43,19 @@ export function cleanNote(ids, action) {
     : `${apps.join(", ")} aberto — arquivos em uso serão pulados.`;
 }
 
+/** Link "Simular sem apagar" ao lado de um botao de limpeza. */
+export const simulateLink = (action, disabled) =>
+  `<button class="linkbtn mono simlink" data-simulate="${action}" ${disabled ? "disabled" : ""} title="Lista o que seria apagado, sem apagar nada">&gt; Simular sem apagar</button>`;
+
 /** Rodape das telas de lista: resumo a esquerda, botao de execucao a direita. */
-export function actionBar({ label, size, count, note, frac, action, buttonLabel, disabled }) {
+export function actionBar({ label, size, count, note, frac, action, buttonLabel, disabled, simulate = false }) {
   return `
     <div class="actionbar">
       <div class="ab-info">
         <div class="mono">${label}</div>
         <div class="ab-size">${fmt(size)} <small>· ${count}</small></div>
         <div class="ab-note"><span class="ascii">${asciiBar(frac, 16)}</span>${note}</div>
+        ${simulate ? simulateLink(action, disabled) : ""}
       </div>
       <div>
         ${runButton(action, buttonLabel, disabled)}

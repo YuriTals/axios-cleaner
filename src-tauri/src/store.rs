@@ -59,9 +59,9 @@ pub fn logs_dir() -> PathBuf {
     logs
 }
 
-/// Grava o log de uma limpeza e devolve o caminho.
-pub fn write_log(stamp: &str, lines: &[String]) -> Option<String> {
-    let path = logs_dir().join(format!("limpeza_{stamp}.txt"));
+/// Grava um log (`kind`: "limpeza" ou "simulacao") e devolve o caminho.
+pub fn write_log(kind: &str, stamp: &str, lines: &[String]) -> Option<String> {
+    let path = logs_dir().join(format!("{kind}_{stamp}.txt"));
     let mut f = fs::File::create(&path).ok()?;
     // BOM para o Bloco de Notas reconhecer UTF-8 com acentos.
     f.write_all(b"\xEF\xBB\xBF").ok()?;

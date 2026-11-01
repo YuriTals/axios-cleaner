@@ -3,10 +3,11 @@
 //! religar tudo -> log e historico.
 
 use crate::engine::{self, CleanItem};
-use crate::rules::Category;
+use crate::rules::{Category, Kind};
 use crate::{store, system};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -141,7 +142,70 @@ fn write_report(s: &CleanSummary, scheduled: bool) -> Option<String> {
         lines.push(format!("[{}] {} · {} arquivos · {} pulados", category_name(&item.id), human_size(item.freed), item.files, item.skipped));
         lines.extend(item.skipped_paths.iter().map(|p| format!("    em uso: {p}")));
     }
-    store::write_log(&stamp, &lines)
+    store::write_log("limpeza", &stamp, &lines)
+}
+
+// ---------------------------------------------------------------------------
+// Simulacao: o que seria apagado, sem apagar nada
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize, Default)]
+pub struct SimSummary {
+    pub bytes: u64,
+    pub files: u64,
+    pub log: Option<String>,
+    pub cancelled: bool,
+}
+
+/// Arquivos listados por categoria no log da simulacao (os maiores primeiro).
+const SIM_LIST_MAX: usize = 5000;
+
+pub fn run_simulation(ids: &[String], stop: &AtomicBool, emit: Emit) -> SimSummary {
+    let cats = selected_categories(ids);
+    let policy = engine::Policy::load();
+    let mut seen = HashSet::new();
+    let mut s = SimSummary::default();
+    let mut body = Vec::new();
+    for (i, cat) in cats.iter().enumerate() {
+        if stop.load(Ordering::Relaxed) {
+            break;
+        }
+        emit("sim-progress", json!({ "done": i, "total": cats.len() }));
+        let (bytes, files, list) = if cat.kind == Kind::RecycleBin {
+            let (bytes, files) = engine::recycle_bin_info();
+            (bytes, files, vec![])
+        } else {
+            let list = engine::simulate_category(cat, &policy, &mut seen, stop);
+            (list.iter().map(|f| f.bytes).sum(), list.len() as u64, list)
+        };
+        s.bytes += bytes;
+        s.files += files;
+        body.push(format!("[{}] {} · {} arquivos", cat.name, human_size(bytes), files));
+        body.extend(list.iter().take(SIM_LIST_MAX).map(|f| format!("    {:>10}  {}", human_size(f.bytes), f.path)));
+        if list.len() > SIM_LIST_MAX {
+            body.push(format!("    … e mais {} arquivos menores", list.len() - SIM_LIST_MAX));
+        }
+        if cat.kind == Kind::RecycleBin && files > 0 {
+            body.push("    (os itens da Lixeira não são listados)".into());
+        }
+        body.push(String::new());
+    }
+    s.cancelled = stop.load(Ordering::Relaxed);
+    emit("sim-progress", json!({ "done": cats.len(), "total": cats.len() }));
+
+    let (stamp, when) = system::local_stamp();
+    let mut lines = vec![
+        format!("Axios Cleaner — simulação em {when}. Nada foi apagado."),
+        format!("Seriam liberados: {} · {} arquivos", human_size(s.bytes), s.files),
+        "Na limpeza de verdade, arquivos em uso são pulados, então o total pode ser um pouco menor.".into(),
+    ];
+    if s.cancelled {
+        lines.push("A simulação foi cancelada antes do fim.".into());
+    }
+    lines.push(String::new());
+    lines.extend(body);
+    s.log = store::write_log("simulacao", &stamp, &lines);
+    s
 }
 
 /// Resumo curto das categorias: "Sistema, Chrome, Edge +4".

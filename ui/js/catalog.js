@@ -56,7 +56,7 @@ export const APP_NAMES = {
   "msedge.exe": "Edge", "chrome.exe": "Chrome", "firefox.exe": "Firefox", "brave.exe": "Brave",
   "vivaldi.exe": "Vivaldi", "opera.exe": "Opera", "OneDrive.exe": "OneDrive", "Discord.exe": "Discord",
   "DiscordPTB.exe": "Discord PTB", "DiscordCanary.exe": "Discord Canary", "ms-teams.exe": "Teams",
-  "Teams.exe": "Teams", "slack.exe": "Slack",
+  "Teams.exe": "Teams", "slack.exe": "Slack", "WhatsApp.Root.exe": "WhatsApp", "WhatsApp.exe": "WhatsApp", "Telegram.exe": "Telegram",
 };
 
 /** Cores das areas no nucleo e das fatias do mapa (rubi -> cinzas). */

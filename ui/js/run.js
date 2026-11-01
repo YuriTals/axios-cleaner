@@ -1,7 +1,7 @@
 // Botao de execucao: segurar para iniciar, % ao vivo e cancelar no hover.
 //
 // S.run descreve a tarefa em andamento:
-//   { kind: "scan" | "clean" | "tasks" | "recycle", action, cancel?, start, ... }
+//   { kind: "scan" | "clean" | "simulate" | "tasks" | "recycle" | "update", action, cancel?, start, ... }
 
 import { taskById } from "./catalog.js";
 import { asciiBar, esc, fmt, remaining } from "./format.js";
@@ -15,7 +15,7 @@ const ETA_MIN_SECONDS = 1.5;
 const BAR_WIDTH = 30;
 const LONG_LABEL = 12;
 
-const KIND_LABEL = { scan: "Analisando", clean: "Limpando", tasks: "Manutenção", recycle: "Lixeira", update: "Atualizando" };
+const KIND_LABEL = { scan: "Analisando", clean: "Limpando", simulate: "Simulando", tasks: "Manutenção", recycle: "Lixeira", update: "Atualizando" };
 
 const isCleanAction = (a) => a === "all" || a === "recycle" || a.startsWith("group:");
 
@@ -24,7 +24,7 @@ export function runFor(action) {
   const r = S.run;
   if (!r) return null;
   if (r.action === action) return r;
-  if ((r.kind === "clean" || r.kind === "scan") && isCleanAction(action)) return r;
+  if (["clean", "scan", "simulate"].includes(r.kind) && isCleanAction(action)) return r;
   return null;
 }
 
@@ -40,6 +40,7 @@ export function runFraction(r) {
   const raw = {
     clean: () => (r.done + r.cur) / Math.max(1, r.total),
     scan: () => r.done / Math.max(1, r.total),
+    simulate: () => r.done / Math.max(1, r.total),
     recycle: () => r.done / Math.max(1, r.total),
     update: () => (r.total ? r.done / r.total : 0),
     tasks: () => tasksFraction(r),
@@ -60,6 +61,7 @@ function eta(r) {
 
 function stage(r) {
   if (r.kind === "scan") return `Analisando · ${r.done}/${r.total} categorias`;
+  if (r.kind === "simulate") return `Simulando, sem apagar · ${r.done}/${r.total} categorias`;
   if (r.kind === "recycle") return `Lixeira · ${r.done}/${r.total} arquivos`;
   if (r.kind === "update") return r.total && r.done >= r.total ? "Instalando…" : `Baixando · ${fmt(r.done)}${r.total ? ` de ${fmt(r.total)}` : ""}`;
   if (r.kind === "tasks") return taskById(r.curId)?.name || "Preparando…";

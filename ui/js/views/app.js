@@ -43,7 +43,7 @@ export function viewHistory() {
 // ---------------------------------------------------------------------------
 
 const BEHAVIOR = [
-  ["closeApps", "Fechar apps abertos antes de limpar", "Se navegadores, Discord, Teams ou OneDrive estiverem abertos, pergunta antes de fechá-los (como clicar no X) e só força quem não fechar em 8 s. O OneDrive é reaberto no final. Desligado, arquivos em uso são pulados."],
+  ["closeApps", "Fechar apps abertos antes de limpar", "Se navegadores, Discord, Teams, WhatsApp, Telegram ou OneDrive estiverem abertos, pergunta antes de fechá-los (como clicar no X) e só força quem não fechar em 8 s. O OneDrive é reaberto no final. Desligado, arquivos em uso são pulados."],
   ["autoScan", "Analisar ao abrir", "Faz a varredura (só leitura) assim que o app abre."],
   ["protectRecent", "Proteger temporários recentes", "Arquivos das pastas Temp criados ou alterados nas últimas 24 h ficam, porque podem ser de um instalador ou programa ainda em uso."],
   ["restorePoint", "Criar ponto de restauração antes de limpar", "Mais seguro, mas deixa a limpeza ~1 min mais lenta. Precisa da Proteção do Sistema ativa."],
@@ -111,6 +111,36 @@ function updatesSection() {
     <div class="sched" style="margin-top:8px">${action}<span class="sched-msg ${tone}" style="margin:0">${esc(text)}</span></div>`;
 }
 
+function pathRows(key, empty) {
+  const list = S.config[key] || [];
+  if (!list.length) return `<div class="row static"><span class="row-main"><span class="main"><span class="desc">${empty}</span></span></span></div>`;
+  return list.map((p) => `
+    <div class="row static"><span class="row-main"><span class="main"><span class="name path-name" title="${esc(p)}">${esc(p)}</span></span></span>
+      <button class="row-more" data-pathrm="${key}" data-path="${esc(p)}" title="Remover da lista">×</button></div>`).join("");
+}
+
+function pathMsg(key) {
+  const m = S.pathsMsg;
+  return m?.key === key ? `<div class="sched-msg ${m.error ? "off" : ""}">${esc(m.text)}</div>` : "";
+}
+
+/** Exclusoes (nunca apagar) e pastas extras (limpar tambem). */
+function pathsSection() {
+  return `
+    <div class="dh">Nunca apagar</div>
+    <div class="sub-s">Arquivos e pastas desta lista ficam, mesmo se estiverem dentro de uma área de limpeza.</div>
+    <div class="list">${pathRows("exclude", "Nenhuma exclusão.")}</div>
+    <div class="sched" style="margin-top:8px">
+      <button class="btn" data-pathadd="exclude:folder">+ Pasta</button><button class="btn" data-pathadd="exclude:file">+ Arquivo</button>
+    </div>
+    ${pathMsg("exclude")}
+    <div class="dh">Pastas extras para limpar</div>
+    <div class="sub-s">Todo o conteúdo delas é apagado junto com o Sistema; a pasta em si fica. Pastas do Windows, de programas e pessoais (Documentos, Área de Trabalho…) não são aceitas.</div>
+    <div class="list">${pathRows("custom", "Nenhuma pasta extra.")}</div>
+    <div class="sched" style="margin-top:8px"><button class="btn" data-pathadd="custom:folder">+ Pasta</button></div>
+    ${pathMsg("custom")}`;
+}
+
 function categoriesSection() {
   return CHANNELS.filter((c) => c.group).map((ch) => `
     <div class="dh">${ch.code} · ${ch.t}</div>
@@ -126,6 +156,7 @@ export function viewSettings() {
         ${appearanceSection()}
         <div class="dh">Comportamento</div>
         <div class="list">${behavior}${adminRow()}</div>
+        ${pathsSection()}
         ${scheduleSection()}
         ${updatesSection()}
         <div class="dh">Categorias incluídas na limpeza</div>

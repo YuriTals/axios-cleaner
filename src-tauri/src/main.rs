@@ -31,6 +31,7 @@ fn main() {
     builder
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
         .manage(SysState(Mutex::new(sys)))
         .manage(PerfState(Mutex::new(perf::Perf::new())))
         .manage(Arc::new(CancelFlags::default()))
@@ -59,6 +60,9 @@ fn main() {
             commands::reveal_path,
             commands::open_log,
             commands::open_logs_folder,
+            commands::simulate,
+            commands::check_custom_folder,
+            commands::pick_path,
             commands::running_apps,
             commands::quit_ack,
             commands::quit_app,

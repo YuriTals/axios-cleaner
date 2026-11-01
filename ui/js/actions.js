@@ -109,6 +109,23 @@ async function runClean(action, ids, closeApps, closeOnly = null) {
   await scan();
 }
 
+/** Mostra o que a limpeza apagaria, sem apagar nada (o log lista os arquivos). */
+export async function simulate(action) {
+  const ids = idsForAction(action);
+  if (!ids.length || busy()) return;
+  S.run = { kind: "simulate", action: "*simulate", cancel: "clean", start: performance.now(), total: ids.length, done: 0 };
+  render();
+  let result = null;
+  try {
+    result = await invoke("simulate", { ids });
+  } catch (e) {
+    console.error(e);
+  }
+  await finishRun();
+  render();
+  if (result) showSimulation(result);
+}
+
 export function cancelRun() {
   if (!S.run?.cancel) return;
   S.run.cancelling = true;
@@ -249,6 +266,46 @@ async function installUpdate() {
 }
 
 // ---------------------------------------------------------------------------
+// Exclusoes e pastas extras (Ajustes)
+// ---------------------------------------------------------------------------
+
+const samePath = (a, b) => a.replace(/\\+$/, "").toLowerCase() === b.replace(/\\+$/, "").toLowerCase();
+
+/** Salva a lista e analisa de novo, porque os totais mudam. */
+async function savePaths(key, list, msg) {
+  S.config[key] = list;
+  S.pathsMsg = { key, text: msg };
+  render();
+  await saveConfig();
+  scan();
+}
+
+/** "exclude": nunca apagar (pasta ou arquivo). "custom": pasta extra para limpar. */
+export async function addPath(key, folder = true) {
+  const picked = await invoke("pick_path", { folder }).catch(() => null);
+  if (!picked) return;
+  const list = S.config[key] || [];
+  if (list.some((p) => samePath(p, picked))) {
+    S.pathsMsg = { key, text: "Esse caminho já está na lista." };
+    return render();
+  }
+  if (key === "custom") {
+    try {
+      const ok = await invoke("check_custom_folder", { path: picked });
+      return savePaths(key, [...list, ok], `Adicionada: ${ok}`);
+    } catch (e) {
+      S.pathsMsg = { key, text: String(e), error: true };
+      return render();
+    }
+  }
+  savePaths(key, [...list, picked], `Excluído: ${picked}`);
+}
+
+export function removePath(key, path) {
+  savePaths(key, (S.config[key] || []).filter((p) => !samePath(p, path)), `Removido: ${path}`);
+}
+
+// ---------------------------------------------------------------------------
 // Tamanho da interface
 // ---------------------------------------------------------------------------
 
@@ -284,19 +341,34 @@ export function startAction(action) {
 const REPORT_RULE = 18;
 
 export function showResult(res) {
-  const frame = "+" + "-".repeat(REPORT_RULE) + " RELATÓRIO " + "-".repeat(REPORT_RULE) + "+";
   const skipped = res.skipped ? ` · ${plural(res.skipped, "em uso pulado", "em uso pulados")}` : "";
+  showReport({
+    frame: "RELATÓRIO", title: res.cancelled ? "Limpeza cancelada" : "Limpeza concluída", bytes: res.freed, unit: "liberados",
+    detail: plural(res.files, "arquivo apagado", "arquivos apagados") + skipped, log: res.log, logLabel: "Ver log",
+  });
+}
+
+function showSimulation(res) {
+  showReport({
+    frame: "SIMULAÇÃO", title: res.cancelled ? "Simulação cancelada" : "Simulação concluída · nada foi apagado", bytes: res.bytes,
+    unit: "seriam liberados", detail: `${plural(res.files, "arquivo", "arquivos")} · arquivos em uso podem ser pulados na limpeza de verdade`,
+    log: res.log, logLabel: "Ver a lista de arquivos",
+  });
+}
+
+function showReport({ frame: name, title, bytes, unit, detail, log, logLabel }) {
+  const frame = "+" + "-".repeat(REPORT_RULE) + ` ${name} ` + "-".repeat(REPORT_RULE) + "+";
   const overlay = document.createElement("div");
   overlay.className = "overlay";
   overlay.innerHTML = `
     ${blobCanvas(7, "full")}
     <div class="ov-c">
       <div class="ov-frame">${frame}</div>
-      <div class="mono ruby">${res.cancelled ? "Limpeza cancelada" : "Limpeza concluída"}</div>
-      ${bigNumber(res.freed, "xl")}
-      <div class="ov-u mono">liberados</div>
-      <div class="ov-d">${plural(res.files, "arquivo apagado", "arquivos apagados")}${skipped}</div>
-      ${res.log ? `<button class="linkbtn mono" data-openfile="${esc(res.log)}">&gt; Ver log</button>` : ""}
+      <div class="mono ruby">${title}</div>
+      ${bigNumber(bytes, "xl")}
+      <div class="ov-u mono">${unit}</div>
+      <div class="ov-d">${detail}</div>
+      ${log ? `<button class="linkbtn mono" data-openfile="${esc(log)}">&gt; ${logLabel}</button>` : ""}
       <div class="ov-frame">+${"-".repeat(frame.length - 2)}+</div>
     </div>
     <div class="ov-foot mono">Clique · para fechar</div>`;

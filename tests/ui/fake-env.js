@@ -41,7 +41,11 @@ globalThis.__TAURI__ = {
     invoke(cmd, args) {
       calls.push([cmd, args]);
       const r = replies[cmd];
-      return Promise.resolve(typeof r === "function" ? r(args) : r);
+      try {
+        return Promise.resolve(typeof r === "function" ? r(args) : r);
+      } catch (e) {
+        return Promise.reject(e); // um comando que falha no backend
+      }
     },
   },
   event: { listen: async () => () => {} },

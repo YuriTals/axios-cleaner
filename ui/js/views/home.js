@@ -4,7 +4,7 @@ import { CHANNELS } from "../catalog.js";
 import { asciiChart, esc, fmt, nf, plural } from "../format.js";
 import { runButton } from "../run.js";
 import { S, allIds, areas, bigCaches, busy, bytesOf, filesOf, scanning, selIn, selectedBytes, sum } from "../state.js";
-import { bigNumber, cleanNote } from "../widgets.js";
+import { bigNumber, cleanNote, simulateLink } from "../widgets.js";
 
 const HOT_PERCENT = 88;
 
@@ -65,6 +65,7 @@ export function viewHome() {
     <section class="home-act">
       ${runButton("all", "LIMPAR TUDO", busy() || junk === 0)}
       <div class="act-note">${cleanNote(allIds(), "all")}</div>
+      ${simulateLink("all", busy() || junk === 0)}
     </section>
 
     <section class="home-r">

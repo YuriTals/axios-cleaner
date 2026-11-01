@@ -1,7 +1,7 @@
 import { called, replies, reset, until } from "./fake-env.js";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { S, bigCaches } from "../../ui/js/state.js";
+import { S, bigCaches, catsOf } from "../../ui/js/state.js";
 import { groupApps } from "../../ui/js/format.js";
 import * as actions from "../../ui/js/actions.js";
 import { updateBadge, updateSkipped } from "../../ui/js/views/update.js";
@@ -117,6 +117,60 @@ test("cache gigante: so categorias a partir de 5 GB, da maior para a menor", () 
   S.cats = [CHROME, { ...CHROME, id: "shaders" }, { ...CHROME, id: "recycle" }, { ...CHROME, id: "npm" }];
   S.scan = { chrome: { bytes: 4 * GB }, shaders: { bytes: 25 * GB }, recycle: { bytes: 50 * GB }, npm: { bytes: 6 * GB } };
   assert.deepEqual(bigCaches().map((c) => c.id), ["shaders", "npm"]);
+});
+
+// ---------------------------------------------------------------------------
+// Exclusoes, pastas extras e simulacao
+// ---------------------------------------------------------------------------
+
+test("exclusao escolhida vai para a configuracao e a varredura roda de novo", async () => {
+  replies.pick_path = "D:\\Jogos";
+  await actions.addPath("exclude");
+  assert.deepEqual(S.config.exclude, ["D:\\Jogos"]);
+  assert.equal(called("pick_path")[0][1].folder, true);
+  await until(() => called("scan").length);
+  assert.ok(called("save_config").length);
+});
+
+test("o mesmo caminho nao entra duas vezes (sem diferenciar maiusculas)", async () => {
+  S.config.exclude = ["D:\\Jogos"];
+  replies.pick_path = "d:\\jogos\\";
+  await actions.addPath("exclude");
+  assert.deepEqual(S.config.exclude, ["D:\\Jogos"]);
+  assert.match(S.pathsMsg.text, /já está/);
+});
+
+test("pasta extra recusada pelo backend nao e salva e mostra o motivo", async () => {
+  replies.pick_path = "C:\\Windows\\Temp";
+  replies.check_custom_folder = () => { throw "Pastas do Windows e de programas são protegidas."; };
+  await actions.addPath("custom");
+  assert.equal(S.config.custom, undefined);
+  assert.equal(S.pathsMsg.error, true);
+  assert.equal(called("save_config").length, 0);
+});
+
+test("remover tira o caminho da lista", async () => {
+  S.config.custom = ["D:\\Temp\\Downloads", "E:\\Cache"];
+  actions.removePath("custom", "d:\\temp\\downloads");
+  assert.deepEqual(S.config.custom, ["E:\\Cache"]);
+  await until(() => called("scan").length);
+});
+
+test("Pastas extras so aparece na tela depois de adicionar uma", () => {
+  S.cats = [CHROME, { ...CHROME, id: "custom", group: "Sistema" }, { ...CHROME, id: "usertemp", group: "Sistema" }];
+  assert.deepEqual(catsOf("Sistema").map((c) => c.id), ["usertemp"]);
+  S.config.custom = ["D:\\Temp"];
+  assert.deepEqual(catsOf("Sistema").map((c) => c.id), ["custom", "usertemp"]);
+});
+
+test("simular manda as categorias marcadas e nao limpa", async () => {
+  replies.simulate = { bytes: 10, files: 1, log: "C:\\logs\\simulacao.txt", cancelled: false };
+  const running = actions.simulate("all");
+  assert.equal(S.run.kind, "simulate");
+  await running;
+  assert.deepEqual(called("simulate")[0][1], { ids: ["chrome"] });
+  assert.equal(called("clean").length, 0);
+  assert.equal(S.run, null);
 });
 
 // ---------------------------------------------------------------------------

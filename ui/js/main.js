@@ -30,6 +30,9 @@ const CLICK = {
     return false;
   },
   rescan: () => { actions.scan(); return false; },
+  simulate: (action) => { actions.simulate(action); return false; },
+  pathadd: (spec) => { const [key, kind] = spec.split(":"); actions.addPath(key, kind !== "file"); return false; },
+  pathrm: (key, el) => { actions.removePath(key, el.dataset.path); return false; },
   go: (route) => { actions.go(route); return false; },
   toggle: (id) => { toggle(S.selected, id); saveConfig(); },
   all: (group) => {
@@ -232,6 +235,7 @@ async function wireBackendEvents() {
     if (S.run?.kind === "tasks") Object.assign(S.run, { doneW: S.run.doneW + taskById(res.id).est, curId: null, curStart: 0 });
     render();
   });
+  await listen("sim-progress", (p) => { if (S.run?.kind === "simulate") S.run.done = p.done; patchRun(); });
   await listen("recycle-progress", (p) => { if (S.run?.kind === "recycle") S.run.done = p.done; patchRun(); });
   await listen("map-progress", (p) => { S.map.progress = p; if (S.route === "map") render(); });
   await listen("tray-scan", () => { S.route = "home"; actions.scan(); });

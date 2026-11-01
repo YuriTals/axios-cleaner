@@ -65,7 +65,7 @@ export function viewGroup(ch) {
       ${actionBar({
         label: "Selecionado", size: bytes, count: plural(sum(selected, filesOf), "item", "itens"),
         note: cleanNote(ids, action), frac: total ? bytes / total : 0,
-        action, buttonLabel: "LIMPAR", disabled: busy() || bytes === 0,
+        action, buttonLabel: "LIMPAR", disabled: busy() || bytes === 0, simulate: true,
       })}
     </section>`;
 }
