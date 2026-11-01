@@ -100,12 +100,25 @@ pub fn create_main_window(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
-    let open = MenuItem::with_id(app, "open", "Abrir Axios Cleaner", true, None::<&str>)?;
-    let scan = MenuItem::with_id(app, "scan", "Analisar agora", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Sair", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&open, &scan, &PredefinedMenuItem::separator(app)?, &quit])?;
+/// Menu da bandeja no idioma da interface.
+fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    let en = store::english();
+    let text = |pt: &'static str, english: &'static str| if en { english } else { pt };
+    let open = MenuItem::with_id(app, "open", text("Abrir Axios Cleaner", "Open Axios Cleaner"), true, None::<&str>)?;
+    let scan = MenuItem::with_id(app, "scan", text("Analisar agora", "Scan now"), true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", text("Sair", "Quit"), true, None::<&str>)?;
+    Menu::with_items(app, &[&open, &scan, &PredefinedMenuItem::separator(app)?, &quit])
+}
 
+/// Recria o menu da bandeja depois de trocar o idioma.
+pub fn refresh_tray_menu(app: &AppHandle) {
+    if let (Some(tray), Ok(menu)) = (app.tray_by_id(TRAY_ID), tray_menu(app)) {
+        let _ = tray.set_menu(Some(menu));
+    }
+}
+
+pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
+    let menu = tray_menu(app)?;
     let mut tray = TrayIconBuilder::with_id(TRAY_ID)
         .tooltip("Axios Cleaner")
         .menu(&menu)
@@ -152,12 +165,13 @@ pub fn run_scheduled_clean(app: AppHandle) {
     std::thread::spawn(move || {
         let never_cancel = AtomicBool::new(false);
         let summary = pipeline::run_clean(&saved_clean_options(), true, &never_cancel, &|_, _| {});
-        let _ = app
-            .notification()
-            .builder()
-            .title("Axios Cleaner")
-            .body(format!("Limpeza automática concluída: {} liberados.", pipeline::human_size(summary.freed)))
-            .show();
+        let freed = pipeline::human_size(summary.freed);
+        let body = if store::english() {
+            format!("Scheduled cleaning finished: {freed} freed.")
+        } else {
+            format!("Limpeza automática concluída: {freed} liberados.")
+        };
+        let _ = app.notification().builder().title("Axios Cleaner").body(body).show();
         std::thread::sleep(NOTIFICATION_GRACE);
         app.exit(0);
     });

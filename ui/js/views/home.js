@@ -2,6 +2,7 @@
 
 import { CHANNELS } from "../catalog.js";
 import { asciiChart, esc, fmt, nf, plural } from "../format.js";
+import { catName, locale, t } from "../i18n.js";
 import { runButton } from "../run.js";
 import { S, allIds, areas, bigCaches, busy, bytesOf, filesOf, scanning, selIn, selectedBytes, sum } from "../state.js";
 import { bigNumber, cleanNote, simulateLink } from "../widgets.js";
@@ -18,7 +19,7 @@ const diskBarWidth = () => Math.max(DISK_BAR_MIN, Math.min(DISK_BAR_MAX, Math.fl
 function areaList(scanned) {
   return areas().map((a, k) => `
     <button class="grow ${a.bytes ? "" : "zero"} ${S.coreHover === k ? "hot" : ""}" data-go="${a.route}" data-area="${k}">
-      <i style="background:${a.color}"></i><span class="gname">${a.name}</span><span class="gdots"></span>
+      <i style="background:${a.color}"></i><span class="gname">${t(a.name)}</span><span class="gdots"></span>
       <span class="gsize">${scanned ? fmt(a.bytes) : scanning() ? "···" : "—"}</span>
     </button>`).join("");
 }
@@ -29,28 +30,28 @@ function bigCacheWarnings() {
   if (!list.length || scanning()) return "";
   return `<div class="hwarns">${list.map((c) => {
     const route = CHANNELS.find((ch) => ch.group === c.group)?.id || "home";
-    return `<button class="hwarn" data-go="${route}" title="Ver dica"><span>!</span> ${esc(c.name)} · <b>${fmt(bytesOf(c.id))}</b></button>`;
+    return `<button class="hwarn" data-go="${route}" title="${t("Ver dica")}"><span>!</span> ${esc(catName(c))} · <b>${fmt(bytesOf(c.id))}</b></button>`;
   }).join("")}</div>`;
 }
 
 function coreCaption(scanned) {
-  if (scanning()) return ["Analisando", `analisando ${S.run.done}/${S.run.total}`];
-  if (scanned) return ["Lixo detectado", plural(sum(selIn(allIds()), filesOf), "item", "itens")];
-  return ["Aguardando", "sem leitura"];
+  if (scanning()) return [t("Analisando"), t("analisando {done}/{total}", { done: S.run.done, total: S.run.total })];
+  if (scanned) return [t("Lixo detectado"), plural(sum(selIn(allIds()), filesOf), "item", "itens")];
+  return [t("Aguardando"), t("sem leitura")];
 }
 
 export function viewHome() {
   const junk = selectedBytes();
   const scanned = S.scanAt != null;
-  const time = S.scanAt ? S.scanAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+  const time = S.scanAt ? S.scanAt.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) : "--:--";
   const [caption, sub] = coreCaption(scanned);
   return `
     <section class="home-l">
-      <div class="hhead"><span class="mono">Lixo por área</span><span class="ph-dots"></span></div>
+      <div class="hhead"><span class="mono">${t("Lixo por área")}</span><span class="ph-dots"></span></div>
       ${areaList(scanned)}
       ${bigCacheWarnings()}
       <div class="hfoot">scan <b>${time}</b> · ${S.scanSecs ? `${S.scanSecs}s` : "--"}<br>
-        <button class="linkbtn mono rescan" data-rescan ${busy() ? "disabled" : ""}>&gt; Analisar de novo</button></div>
+        <button class="linkbtn mono rescan" data-rescan ${busy() ? "disabled" : ""}>&gt; ${t("Analisar de novo")}</button></div>
     </section>
 
     <section class="core" id="core">
@@ -63,13 +64,13 @@ export function viewHome() {
     </section>
 
     <section class="home-act">
-      ${runButton("all", "LIMPAR TUDO", busy() || junk === 0)}
+      ${runButton("all", t("LIMPAR TUDO"), busy() || junk === 0)}
       <div class="act-note">${cleanNote(allIds(), "all")}</div>
       ${simulateLink("all", busy() || junk === 0)}
     </section>
 
     <section class="home-r">
-      <div class="hhead"><span class="mono">Telemetria</span><span class="ph-dots"></span><span class="live mono"><i></i>Ao vivo</span></div>
+      <div class="hhead"><span class="mono">${t("Telemetria")}</span><span class="ph-dots"></span><span class="live mono"><i></i>${t("Ao vivo")}</span></div>
       <div id="tel">${telemetryHtml()}</div>
     </section>
 
@@ -84,7 +85,7 @@ export function telemetryHtml() {
     ["CPU", st?.cpu, "", h.cpu],
     ["GPU", st?.gpu, "", h.gpu],
     ["MEM", memPct, memSub, h.mem],
-    ["DISCO", st?.disk_activity, "atividade", h.disk],
+    [t("DISCO"), st?.disk_activity, t("atividade"), h.disk],
   ];
   return rows.map(([label, value, sub, history]) => `
     <div class="tel">
@@ -100,13 +101,13 @@ function diskLine(d, junk, after, width) {
   const usedChars = Math.max(0, Math.round((used / d.total) * width) - junkChars);
   const freeChars = Math.max(0, width - usedChars - junkChars);
   const bar = `[<u>${"=".repeat(usedChars)}</u><b>${"=".repeat(junkChars)}</b>${"·".repeat(freeChars)}]`;
-  const extra = j ? (after ? ` · <b>+${fmt(j)}</b>` : ` · <b>${fmt(j)} lixo</b>`) : "";
+  const extra = j ? (after ? ` · <b>+${fmt(j)}</b>` : ` · <b>${t("{size} lixo", { size: fmt(j) })}</b>`) : "";
   return `<div class="dline">
     <span class="dl-m">${esc(d.mount.replace(/\\$/, ""))}</span>
-    <span class="dl-l">${esc(d.system ? "sistema" : (d.label || "local").toLowerCase())}</span>
+    <span class="dl-l">${esc(d.system ? t("sistema") : (d.label || t("local")).toLowerCase())}</span>
     <span class="ascii dl-bar">${bar}</span>
     <span class="dl-p">${Math.round((used / d.total) * 100)}%</span>
-    <span class="dl-f">${fmt(d.total - used)} livres${extra}</span>
+    <span class="dl-f">${t("{size} livres", { size: fmt(d.total - used) })}${extra}</span>
   </div>`;
 }
 
@@ -116,9 +117,9 @@ export function disksHtml(junk) {
   const lines = (S.stats?.disks || []).map((d) => diskLine(d, junk, after, width)).join("");
   return `
     <section class="home-disks" id="disks">
-      <div class="hhead"><span class="mono">Unidades</span><span class="ph-dots"></span>
-        <div class="toggle"><button data-disk="now" aria-pressed="${!after}">Agora</button><button data-disk="after" aria-pressed="${after}">Após limpar</button></div>
+      <div class="hhead"><span class="mono">${t("Unidades")}</span><span class="ph-dots"></span>
+        <div class="toggle"><button data-disk="now" aria-pressed="${!after}">${t("Agora")}</button><button data-disk="after" aria-pressed="${after}">${t("Após limpar")}</button></div>
       </div>
-      ${lines || `<div class="dline">lendo unidades…</div>`}
+      ${lines || `<div class="dline">${t("lendo unidades…")}</div>`}
     </section>`;
 }

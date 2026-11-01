@@ -2,6 +2,7 @@
 
 import { TASKS, ZOOM_LEVELS, taskById } from "./catalog.js";
 import { esc, fmt, groupApps, plural } from "./format.js";
+import { setLang, t, tb } from "./i18n.js";
 import { S, allIds, busy, filesOf, idsOf, saveConfig, selIn, selectedBytes } from "./state.js";
 import { invoke } from "./tauri.js";
 import { render, updateLive } from "./render.js";
@@ -51,7 +52,7 @@ export async function scan() {
   S.run = null;
   render();
   updateLive();
-  invoke("set_tray_tooltip", { text: `Axios Cleaner · ${fmt(selectedBytes())} de lixo` }).catch(() => {});
+  invoke("set_tray_tooltip", { text: `Axios Cleaner · ${t("{size} de lixo", { size: fmt(selectedBytes()) })}` }).catch(() => {});
 }
 
 function idsForAction(action) {
@@ -250,13 +251,13 @@ export async function saveSchedule() {
   try {
     if (sc.freq === "off") {
       await invoke("schedule_clear");
-      S.schedule.msg = "Agendamento removido.";
+      S.schedule.msg = t("Agendamento removido.");
     } else {
       await invoke("schedule_set", { freq: sc.freq, day: String(sc.day), time: sc.time });
       S.schedule.msg = "";
     }
   } catch (e) {
-    S.schedule.msg = "Não deu para salvar: " + e;
+    S.schedule.msg = t("Não deu para salvar: {error}", { error: tb(String(e)) });
   }
   S.schedule.active = await invoke("schedule_status");
   saveConfig();
@@ -331,34 +332,56 @@ export async function addPath(key, folder = true) {
   if (!picked) return;
   const list = S.config[key] || [];
   if (list.some((p) => samePath(p, picked))) {
-    S.pathsMsg = { key, text: "Esse caminho já está na lista." };
+    S.pathsMsg = { key, text: t("Esse caminho já está na lista.") };
     return render();
   }
   if (key === "custom") {
     try {
       const ok = await invoke("check_custom_folder", { path: picked });
-      return savePaths(key, [...list, ok], `Adicionada: ${ok}`);
+      return savePaths(key, [...list, ok], t("Adicionada: {path}", { path: ok }));
     } catch (e) {
-      S.pathsMsg = { key, text: String(e), error: true };
+      S.pathsMsg = { key, text: tb(String(e)), error: true };
       return render();
     }
   }
-  savePaths(key, [...list, picked], `Excluído: ${picked}`);
+  savePaths(key, [...list, picked], t("Excluído: {path}", { path: picked }));
 }
 
 export function removePath(key, path) {
-  savePaths(key, (S.config[key] || []).filter((p) => !samePath(p, path)), `Removido: ${path}`);
+  savePaths(key, (S.config[key] || []).filter((p) => !samePath(p, path)), t("Removido: {path}", { path }));
 }
 
 // ---------------------------------------------------------------------------
-// Tamanho da interface
+// Idioma e tamanho da interface
 // ---------------------------------------------------------------------------
+
+/** Troca o idioma; o backend usa a configuracao salva para a bandeja e os logs. */
+export async function setLanguage(lang) {
+  S.settings.lang = lang;
+  setLang(lang);
+  translateStatic();
+  render();
+  await saveConfig();
+  invoke("language_changed").catch(() => {});
+}
+
+/** Textos fixos do index.html (barra de titulo e botoes da janela). */
+export function translateStatic() {
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.dataset.i18nPt ??= el.textContent;
+    el.textContent = t(el.dataset.i18nPt);
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    el.title = t(el.dataset.i18nTitle);
+    el.setAttribute("aria-label", el.title);
+  });
+}
 
 /** Aplica o zoom; o backend devolve o maior nivel que cabe no monitor. */
 export async function setZoom(zoom) {
   const applied = await invoke("set_zoom", { zoom });
   S.settings.zoom = applied;
-  S.zoomMsg = applied < zoom ? `Seu monitor comporta no máximo ${Math.round(applied * 100)}%.` : "";
+  S.zoomMsg = applied < zoom ? t("Seu monitor comporta no máximo {n}%.", { n: Math.round(applied * 100) }) : "";
   saveConfig();
   render();
 }
@@ -389,16 +412,16 @@ const REPORT_RULE = 18;
 export function showResult(res) {
   const skipped = res.skipped ? ` · ${plural(res.skipped, "em uso pulado", "em uso pulados")}` : "";
   showReport({
-    frame: "RELATÓRIO", title: res.cancelled ? "Limpeza cancelada" : "Limpeza concluída", bytes: res.freed, unit: "liberados",
-    detail: plural(res.files, "arquivo apagado", "arquivos apagados") + skipped, log: res.log, logLabel: "Ver log",
+    frame: t("RELATÓRIO"), title: t(res.cancelled ? "Limpeza cancelada" : "Limpeza concluída"), bytes: res.freed, unit: t("liberados"),
+    detail: plural(res.files, "arquivo apagado", "arquivos apagados") + skipped, log: res.log, logLabel: t("Ver log"),
   });
 }
 
 function showSimulation(res) {
   showReport({
-    frame: "SIMULAÇÃO", title: res.cancelled ? "Simulação cancelada" : "Simulação concluída · nada foi apagado", bytes: res.bytes,
-    unit: "seriam liberados", detail: `${plural(res.files, "arquivo", "arquivos")} · arquivos em uso podem ser pulados na limpeza de verdade`,
-    log: res.log, logLabel: "Ver a lista de arquivos",
+    frame: t("SIMULAÇÃO"), title: t(res.cancelled ? "Simulação cancelada" : "Simulação concluída · nada foi apagado"), bytes: res.bytes,
+    unit: t("seriam liberados"), detail: `${plural(res.files, "arquivo", "arquivos")} · ${t("arquivos em uso podem ser pulados na limpeza de verdade")}`,
+    log: res.log, logLabel: t("Ver a lista de arquivos"),
   });
 }
 
@@ -417,7 +440,7 @@ function showReport({ frame: name, title, bytes, unit, detail, log, logLabel }) 
       ${log ? `<button class="linkbtn mono" data-openfile="${esc(log)}">&gt; ${logLabel}</button>` : ""}
       <div class="ov-frame">+${"-".repeat(frame.length - 2)}+</div>
     </div>
-    <div class="ov-foot mono">Clique · para fechar</div>`;
+    <div class="ov-foot mono">${t("Clique · para fechar")}</div>`;
   const close = (e) => {
     if (e?.target?.closest?.("[data-openfile]")) return;
     overlay.remove();

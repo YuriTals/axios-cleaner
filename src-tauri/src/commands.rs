@@ -1,7 +1,7 @@
 //! Comandos chamados pela interface (invoke).
 
 use crate::pipeline::{self, CleanOpts, CleanSummary};
-use crate::{engine, files, perf, shell, startup, store, system};
+use crate::{engine, files, perf, rules_en, shell, startup, store, system};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -82,6 +82,8 @@ pub struct CategoryInfo {
     group: &'static str,
     name: &'static str,
     desc: &'static str,
+    name_en: &'static str,
+    desc_en: &'static str,
     processes: &'static [&'static str],
     services: &'static [&'static str],
     default_on: bool,
@@ -91,14 +93,19 @@ pub struct CategoryInfo {
 pub fn categories() -> Vec<CategoryInfo> {
     engine::all()
         .iter()
-        .map(|c| CategoryInfo {
-            id: c.id,
-            group: c.group,
-            name: c.name,
-            desc: c.desc,
-            processes: c.processes,
-            services: c.services,
-            default_on: c.default_on,
+        .map(|c| {
+            let (name_en, desc_en) = rules_en::english(c.id).unwrap_or((c.name, c.desc));
+            CategoryInfo {
+                id: c.id,
+                group: c.group,
+                name: c.name,
+                desc: c.desc,
+                name_en,
+                desc_en,
+                processes: c.processes,
+                services: c.services,
+                default_on: c.default_on,
+            }
         })
         .collect()
 }
@@ -264,6 +271,12 @@ pub fn quit_ack() {
 #[tauri::command]
 pub fn quit_app(app: AppHandle) {
     app.exit(0);
+}
+
+/// A interface trocou de idioma (a configuracao ja foi salva): atualiza o menu da bandeja.
+#[tauri::command]
+pub fn language_changed(app: AppHandle) {
+    shell::refresh_tray_menu(&app);
 }
 
 /// Muda o tamanho da interface; devolve o nivel que coube no monitor.

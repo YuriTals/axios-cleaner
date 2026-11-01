@@ -1,13 +1,14 @@
 // Funcoes puras de formatacao e de desenho em ASCII (testadas em tests/ui).
 
 import { APP_NAMES } from "./catalog.js";
+import { locale, t } from "./i18n.js";
 
 const KB = 1024;
 const MB = KB ** 2;
 const GB = KB ** 3;
 const TB = KB ** 4;
 
-export const nf = (n, d = 0) => n.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+export const nf = (n, d = 0) => n.toLocaleString(locale(), { minimumFractionDigits: d, maximumFractionDigits: d });
 
 /** Escolhe a unidade e as casas decimais de um tamanho em bytes. */
 export function sizeParts(bytes) {
@@ -23,7 +24,8 @@ export function fmt(bytes) {
   return `${nf(value, decimals)} ${unit}`;
 }
 
-export const plural = (n, one, many) => `${nf(n)} ${n === 1 ? one : many}`;
+/** "1 arquivo" / "3 arquivos" (as palavras passam pelo tradutor). */
+export const plural = (n, one, many) => `${nf(n)} ${t(n === 1 ? one : many)}`;
 
 export const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -42,20 +44,20 @@ const clamp01 = (x) => Math.max(0, Math.min(1, x));
 export function ago(secs, nowMs = Date.now()) {
   if (!secs) return "";
   const days = (nowMs / 1000 - secs) / 86400;
-  if (days < 1) return "hoje";
-  if (days < 2) return "ontem";
-  if (days < 30) return `há ${Math.floor(days)} dias`;
+  if (days < 1) return t("hoje");
+  if (days < 2) return t("ontem");
+  if (days < 30) return t("há {n} dias", { n: Math.floor(days) });
   if (days < 365) {
-    const m = Math.floor(days / 30);
-    return `há ${m} ${m === 1 ? "mês" : "meses"}`;
+    const n = Math.floor(days / 30);
+    return t(n === 1 ? "há 1 mês" : "há {n} meses", { n });
   }
-  const y = Math.floor(days / 365);
-  return `há ${y} ${y === 1 ? "ano" : "anos"}`;
+  const n = Math.floor(days / 365);
+  return t(n === 1 ? "há 1 ano" : "há {n} anos", { n });
 }
 
 /** "restam ~20 s" / "restam ~3 min". */
 export function remaining(secs) {
-  return secs < 60 ? `restam ~${Math.max(1, Math.ceil(secs))} s` : `restam ~${Math.round(secs / 60)} min`;
+  return secs < 60 ? t("restam ~{n} s", { n: Math.max(1, Math.ceil(secs)) }) : t("restam ~{n} min", { n: Math.round(secs / 60) });
 }
 
 /** Barra ASCII: [=====-----]. */

@@ -35,6 +35,11 @@ pub fn save_config(v: &Value) -> Result<(), String> {
     write_json("config.json", v)
 }
 
+/// Interface em ingles? Vale para o que o backend escreve sozinho (bandeja, avisos, logs).
+pub fn english() -> bool {
+    load_config()["settings"]["lang"].as_str() == Some("en")
+}
+
 pub fn load_history() -> Value {
     read_json("history.json", json!([]))
 }

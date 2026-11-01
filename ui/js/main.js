@@ -7,6 +7,7 @@ import { hold, holdEnd, holdStart, patchRun, syncRunClasses } from "./run.js";
 import { modalOpen, render, tickSpinners, trapModalFocus, updateLive } from "./render.js";
 import { coreAreaAt, mapHooks, startAnimation } from "./canvas.js";
 import * as actions from "./actions.js";
+import { locale, t, tb } from "./i18n.js";
 import { currentSchedule } from "./views/app.js";
 
 const STATS_INTERVAL_MS = 2000;
@@ -74,10 +75,11 @@ const CLICK = {
   schfreq: (freq) => {
     const days = { weekly: "SUN", monthly: "1" };
     S.config.schedule = { ...currentSchedule(), freq, day: days[freq] ?? currentSchedule().day };
-    S.schedule.msg = "Clique em Salvar para aplicar.";
+    S.schedule.msg = t("Clique em Salvar para aplicar.");
   },
   schsave: () => { actions.saveSchedule(); return false; },
   zoom: (z) => { actions.setZoom(+z); return false; },
+  lang: (code) => { actions.setLanguage(code); return false; },
   openupdate: () => { S.update.open = true; },
   closeupdate: (mode) => { actions.dismissUpdate(mode === "skip"); },
   apps: (answer) => { actions.answerApps(answer); return false; },
@@ -99,7 +101,7 @@ async function toggleStartup(id, el) {
   } catch (err) {
     const desc = el.closest(".row")?.querySelector(".desc");
     if (desc) {
-      desc.textContent = "Não deu para mudar: " + err;
+      desc.textContent = t("Não deu para mudar: {error}", { error: tb(String(err)) });
       desc.style.color = "var(--ruby-hi)";
     }
   }
@@ -281,7 +283,7 @@ async function pollStats() {
 
 function startClock() {
   const clock = document.querySelector("#clock");
-  const tick = () => { clock.textContent = new Date().toLocaleTimeString("pt-BR"); };
+  const tick = () => { clock.textContent = new Date().toLocaleTimeString(locale()); };
   tick();
   setInterval(tick, 1000);
 }
@@ -297,10 +299,10 @@ async function boot() {
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const leader = (label, width = 30) => `${label} ${".".repeat(Math.max(3, width - label.length))}`;
   const lines = [
-    `> ${leader("regras de limpeza")} <span class="ok">${S.cats.length} categorias</span>`,
-    `> ${leader("sensores cpu/gpu/mem/disco")} <span class="ok">ok</span>`,
-    `> ${leader("permissão")} <span class="ok">${S.admin ? "administrador" : "usuário"}</span>`,
-    `> ${leader("varredura")} <span class="cur">${S.settings.autoScan ? "iniciando" : "manual"}</span>`,
+    `> ${leader(t("regras de limpeza"))} <span class="ok">${t("{n} categorias", { n: S.cats.length })}</span>`,
+    `> ${leader(t("sensores cpu/gpu/mem/disco"))} <span class="ok">ok</span>`,
+    `> ${leader(t("permissão"))} <span class="ok">${t(S.admin ? "administrador" : "usuário")}</span>`,
+    `> ${leader(t("varredura"))} <span class="cur">${t(S.settings.autoScan ? "iniciando" : "manual")}</span>`,
   ];
   el.onclick = () => el.classList.add("gone");
   el.innerHTML = `<div class="l1">AXIOS<b>//</b>CLEANER · v${VERSION}</div>`;
@@ -346,6 +348,7 @@ async function init() {
   S.cats = await invoke("categories");
   S.admin = await invoke("is_admin");
   applyConfig(await invoke("get_config"));
+  actions.translateStatic();
   boot();
   S.history = await invoke("get_history");
   S.map.home = await invoke("home_dir");

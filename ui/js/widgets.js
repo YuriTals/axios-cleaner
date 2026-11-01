@@ -2,6 +2,7 @@
 
 import { channel } from "./catalog.js";
 import { appNames, asciiBar, esc, fmt, nf, plural, sizeParts } from "./format.js";
+import { t } from "./i18n.js";
 import { runButton, runHint } from "./run.js";
 import { S, scanning, selIn } from "./state.js";
 
@@ -25,27 +26,28 @@ function runningApps(ids) {
 }
 
 function lastResultNote(s) {
-  return `<b>${s.cancelled ? "Cancelado · " : ""}Liberado ${fmt(s.freed)}</b> · ${plural(s.files, "arquivo", "arquivos")}` +
+  const freed = t(s.cancelled ? "Cancelado · Liberado {size}" : "Liberado {size}", { size: fmt(s.freed) });
+  return `<b>${freed}</b> · ${plural(s.files, "arquivo", "arquivos")}` +
     (s.skipped ? ` · ${plural(s.skipped, "em uso pulado", "em uso pulados")}` : "") +
-    (s.closed.length ? ` · fechados: ${appNames(s.closed).join(", ")}` : "") +
-    (s.restore_error ? " · sem ponto de restauração" : "");
+    (s.closed.length ? ` · ${t("fechados: {apps}", { apps: appNames(s.closed).join(", ") })}` : "") +
+    (s.restore_error ? ` · ${t("sem ponto de restauração")}` : "");
 }
 
 /** Frase sob o botao de limpar: andamento, ultimo resultado ou o que vai acontecer. */
 export function cleanNote(ids, action) {
-  if (S.run?.kind === "clean") return "Arquivos em uso são pulados — o log da limpeza lista todos.";
-  if (scanning()) return "Lendo o disco, só leitura.";
+  if (S.run?.kind === "clean") return t("Arquivos em uso são pulados — o log da limpeza lista todos.");
+  if (scanning()) return t("Lendo o disco, só leitura.");
   if (S.summary?.scope === action) return lastResultNote(S.summary);
   const apps = runningApps(selIn(ids));
-  if (!apps.length) return "Apagado de vez, sem passar pela Lixeira.";
+  if (!apps.length) return t("Apagado de vez, sem passar pela Lixeira.");
   return S.settings.closeApps
-    ? `Vai perguntar antes de fechar: <b>${apps.join(", ")}</b>`
-    : `${apps.join(", ")} aberto — arquivos em uso serão pulados.`;
+    ? `${t("Vai perguntar antes de fechar:")} <b>${apps.join(", ")}</b>`
+    : t("{apps} aberto — arquivos em uso serão pulados.", { apps: apps.join(", ") });
 }
 
 /** Link "Simular sem apagar" ao lado de um botao de limpeza. */
 export const simulateLink = (action, disabled) =>
-  `<button class="linkbtn mono simlink" data-simulate="${action}" ${disabled ? "disabled" : ""} title="Lista o que seria apagado, sem apagar nada">&gt; Simular sem apagar</button>`;
+  `<button class="linkbtn mono simlink" data-simulate="${action}" ${disabled ? "disabled" : ""} title="${t("Lista o que seria apagado, sem apagar nada")}">&gt; ${t("Simular sem apagar")}</button>`;
 
 /** Rodape das telas de lista: resumo a esquerda, botao de execucao a direita. */
 export function actionBar({ label, size, count, note, frac, action, buttonLabel, disabled, simulate = false }) {

@@ -6,6 +6,7 @@ mod files;
 mod perf;
 mod pipeline;
 mod rules;
+mod rules_en;
 mod shell;
 mod startup;
 mod store;
@@ -68,6 +69,7 @@ fn main() {
             commands::quit_ack,
             commands::quit_app,
             commands::set_zoom,
+            commands::language_changed,
             commands::set_tray_tooltip,
             commands::get_config,
             commands::save_config,

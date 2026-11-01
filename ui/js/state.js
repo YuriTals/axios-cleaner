@@ -1,6 +1,7 @@
 // Estado da interface e consultas sobre ele.
 
 import { AREA_COLORS, BIG_CACHE_BYTES, CHANNELS, DEFAULT_SETTINGS, DEFAULT_TASKS, LEGACY_IDS } from "./catalog.js";
+import { setLang, systemLang } from "./i18n.js";
 import { invoke } from "./tauri.js";
 
 export const S = {
@@ -90,6 +91,8 @@ function initialSelection() {
 export function applyConfig(cfg) {
   S.config = cfg || {};
   S.settings = { ...DEFAULT_SETTINGS, ...(readLegacy("axios.settings") || {}), ...(S.config.settings || {}) };
+  S.settings.lang ||= systemLang(); // primeira vez: o idioma do Windows
+  setLang(S.settings.lang);
   if (Array.isArray(S.config.selected)) {
     const known = new Set(S.config.known || []);
     const ids = allIds();

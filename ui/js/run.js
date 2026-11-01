@@ -5,6 +5,7 @@
 
 import { taskById } from "./catalog.js";
 import { asciiBar, esc, fmt, remaining } from "./format.js";
+import { catName, t, tb } from "./i18n.js";
 import { S, busy } from "./state.js";
 
 const HOLD_MS = 1000;
@@ -15,7 +16,7 @@ const ETA_MIN_SECONDS = 1.5;
 const BAR_WIDTH = 30;
 const LONG_LABEL = 12;
 
-const KIND_LABEL = { scan: "Analisando", clean: "Limpando", simulate: "Simulando", tasks: "Manutenção", recycle: "Lixeira", update: "Atualizando" };
+export const KIND_LABEL = { scan: "Analisando", clean: "Limpando", simulate: "Simulando", tasks: "Manutenção", recycle: "Lixeira", update: "Atualizando" };
 
 const isCleanAction = (a) => a === "all" || a === "recycle" || a.startsWith("group:");
 
@@ -51,31 +52,35 @@ export function runFraction(r) {
 const percent = (r) => Math.floor(runFraction(r) * 100);
 
 function eta(r) {
-  if (r.finished) return "concluído";
-  if (r.cancelling) return "cancelando…";
+  if (r.finished) return t("concluído");
+  if (r.cancelling) return t("cancelando…");
   const f = runFraction(r);
   const elapsed = (performance.now() - r.start) / 1000;
-  if (f < ETA_MIN_FRACTION || elapsed < ETA_MIN_SECONDS) return "calculando…";
+  if (f < ETA_MIN_FRACTION || elapsed < ETA_MIN_SECONDS) return t("calculando…");
   return remaining((elapsed * (1 - f)) / f);
 }
 
 function stage(r) {
-  if (r.kind === "scan") return `Analisando · ${r.done}/${r.total} categorias`;
-  if (r.kind === "simulate") return `Simulando, sem apagar · ${r.done}/${r.total} categorias`;
-  if (r.kind === "recycle") return `Lixeira · ${r.done}/${r.total} arquivos`;
-  if (r.kind === "update") return r.total && r.done >= r.total ? "Instalando…" : `Baixando · ${fmt(r.done)}${r.total ? ` de ${fmt(r.total)}` : ""}`;
-  if (r.kind === "tasks") return taskById(r.curId)?.name || "Preparando…";
+  const counts = { done: r.done, total: r.total };
+  if (r.kind === "scan") return t("Analisando · {done}/{total} categorias", counts);
+  if (r.kind === "simulate") return t("Simulando, sem apagar · {done}/{total} categorias", counts);
+  if (r.kind === "recycle") return t("Lixeira · {done}/{total} arquivos", counts);
+  if (r.kind === "update") {
+    if (r.total && r.done >= r.total) return t("Instalando…");
+    return r.total ? t("Baixando · {done} de {total}", { done: fmt(r.done), total: fmt(r.total) }) : t("Baixando · {done}", { done: fmt(r.done) });
+  }
+  if (r.kind === "tasks") return t(taskById(r.curId)?.name || "Preparando…");
   const cat = S.cats.find((c) => c.id === r.cat);
-  return cat ? `${cat.name} · ${fmt(r.freed || 0)}` : r.phase || "Preparando…";
+  return cat ? `${catName(cat)} · ${fmt(r.freed || 0)}` : tb(r.phase) || t("Preparando…");
 }
 
 const detail = (r) => `${stage(r)} · ${eta(r)}`;
 
 export function statusText() {
   const r = S.run;
-  if (r) return `${KIND_LABEL[r.kind]} ${percent(r)}%`;
-  if (!S.admin) return "Sem admin · parcial";
-  return S.scanAt ? `Pronto · scan ${S.scanSecs}s` : "Pronto";
+  if (r) return `${t(KIND_LABEL[r.kind])} ${percent(r)}%`;
+  if (!S.admin) return t("Sem admin · parcial");
+  return S.scanAt ? t("Pronto · scan {n}s", { n: S.scanSecs }) : t("Pronto");
 }
 
 function idleButton(action, label, disabled) {
@@ -88,8 +93,8 @@ function runningButton(action, r) {
   const canCancel = !!r.cancel && !r.finished;
   const cls = [S.hoverRun === action && canCancel ? "hover" : "", S.confirmRun === action ? "confirm" : "", r.finished ? "done" : ""].join(" ");
   const cancelUi = canCancel ? `
-    <div class="rb-cancel" data-runcancel="${action}">■ CANCELAR</div>
-    <div class="rb-confirm"><span>CANCELAR AGORA?</span><button class="yes" data-confirm="yes">SIM</button><button data-confirm="no">NÃO</button></div>` : "";
+    <div class="rb-cancel" data-runcancel="${action}">■ ${t("CANCELAR")}</div>
+    <div class="rb-confirm"><span>${t("CANCELAR AGORA?")}</span><button class="yes" data-confirm="yes">${t("SIM")}</button><button data-confirm="no">${t("NÃO")}</button></div>` : "";
   return `
     <div class="rb running ${cls}" data-run="${action}">
       <div class="rb-fill" style="--p:${f}"></div>
@@ -108,8 +113,8 @@ export function runButton(action, label, disabled) {
 
 export function runHint(action) {
   const r = runFor(action);
-  if (r) return r.cancel ? "Passe o mouse para cancelar" : "Só leitura · aguarde";
-  return busy() ? "Outra tarefa em andamento" : "Segure até a barra encher";
+  if (r) return t(r.cancel ? "Passe o mouse para cancelar" : "Só leitura · aguarde");
+  return t(busy() ? "Outra tarefa em andamento" : "Segure até a barra encher");
 }
 
 /** Atualiza o % sem recriar o botao (o hover continua estavel). */
@@ -124,7 +129,7 @@ export function patchRun() {
     el.querySelector(".rb-sub").textContent = detail(r);
   });
   const row = document.querySelector(".row.working .size");
-  if (row && r.kind === "clean") row.textContent = `limpando · ${fmt(r.freed || 0)}`;
+  if (row && r.kind === "clean") row.textContent = t("limpando · {size}", { size: fmt(r.freed || 0) });
   document.querySelector("#statusText").textContent = statusText();
 }
 

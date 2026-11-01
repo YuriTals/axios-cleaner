@@ -122,27 +122,47 @@ fn category_name(id: &str) -> &'static str {
     engine::find(id).map(|c| c.name).unwrap_or("?")
 }
 
+/// Nome da categoria no idioma da interface (para os logs).
+fn category_label(id: &str, en: bool) -> &'static str {
+    if en {
+        if let Some((name, _)) = crate::rules_en::english(id) {
+            return name;
+        }
+    }
+    category_name(id)
+}
+
 fn write_report(s: &CleanSummary, scheduled: bool) -> Option<String> {
     let (stamp, when) = system::local_stamp();
-    let mut lines = vec![
-        format!("Axios Cleaner — limpeza {}em {when}", if scheduled { "automática " } else { "" }),
-        format!("Liberado: {} · {} arquivos apagados · {} em uso pulados", human_size(s.freed), s.files, s.skipped),
-    ];
+    let en = store::english();
+    let freed = human_size(s.freed);
+    let mut lines = if en {
+        vec![
+            format!("Axios Cleaner — {}cleaning on {when}", if scheduled { "scheduled " } else { "" }),
+            format!("Freed: {freed} · {} files deleted · {} in use skipped", s.files, s.skipped),
+        ]
+    } else {
+        vec![
+            format!("Axios Cleaner — limpeza {}em {when}", if scheduled { "automática " } else { "" }),
+            format!("Liberado: {freed} · {} arquivos apagados · {} em uso pulados", s.files, s.skipped),
+        ]
+    };
     if s.cancelled {
-        lines.push("A limpeza foi cancelada antes do fim.".into());
+        lines.push(if en { "The cleaning was cancelled before the end." } else { "A limpeza foi cancelada antes do fim." }.into());
     }
     if !s.closed.is_empty() {
-        lines.push(format!("Apps fechados: {}", s.closed.join(", ")));
+        lines.push(format!("{}: {}", if en { "Apps closed" } else { "Apps fechados" }, s.closed.join(", ")));
     }
     if let Some(e) = &s.restore_error {
-        lines.push(format!("Ponto de restauração não criado: {e}"));
+        lines.push(format!("{}: {e}", if en { "Restore point not created" } else { "Ponto de restauração não criado" }));
     }
     lines.push(String::new());
+    let (files, skipped, in_use) = if en { ("files", "skipped", "in use") } else { ("arquivos", "pulados", "em uso") };
     for item in &s.items {
-        lines.push(format!("[{}] {} · {} arquivos · {} pulados", category_name(&item.id), human_size(item.freed), item.files, item.skipped));
-        lines.extend(item.skipped_paths.iter().map(|p| format!("    em uso: {p}")));
+        lines.push(format!("[{}] {} · {} {files} · {} {skipped}", category_label(&item.id, en), human_size(item.freed), item.files, item.skipped));
+        lines.extend(item.skipped_paths.iter().map(|p| format!("    {in_use}: {p}")));
     }
-    store::write_log("limpeza", &stamp, &lines)
+    store::write_log(if en { "cleaning" } else { "limpeza" }, &stamp, &lines)
 }
 
 // ---------------------------------------------------------------------------
@@ -163,6 +183,7 @@ const SIM_LIST_MAX: usize = 5000;
 pub fn run_simulation(ids: &[String], stop: &AtomicBool, emit: Emit) -> SimSummary {
     let cats = selected_categories(ids);
     let policy = engine::Policy::load();
+    let en = store::english();
     let mut seen = HashSet::new();
     let mut s = SimSummary::default();
     let mut body = Vec::new();
@@ -180,13 +201,15 @@ pub fn run_simulation(ids: &[String], stop: &AtomicBool, emit: Emit) -> SimSumma
         };
         s.bytes += bytes;
         s.files += files;
-        body.push(format!("[{}] {} · {} arquivos", cat.name, human_size(bytes), files));
+        let files_word = if en { "files" } else { "arquivos" };
+        body.push(format!("[{}] {} · {files} {files_word}", category_label(cat.id, en), human_size(bytes)));
         body.extend(list.iter().take(SIM_LIST_MAX).map(|f| format!("    {:>10}  {}", human_size(f.bytes), f.path)));
         if list.len() > SIM_LIST_MAX {
-            body.push(format!("    … e mais {} arquivos menores", list.len() - SIM_LIST_MAX));
+            let more = list.len() - SIM_LIST_MAX;
+            body.push(if en { format!("    … and {more} smaller files") } else { format!("    … e mais {more} arquivos menores") });
         }
         if cat.kind == Kind::RecycleBin && files > 0 {
-            body.push("    (os itens da Lixeira não são listados)".into());
+            body.push(if en { "    (Recycle Bin items are not listed)" } else { "    (os itens da Lixeira não são listados)" }.into());
         }
         body.push(String::new());
     }
@@ -194,17 +217,26 @@ pub fn run_simulation(ids: &[String], stop: &AtomicBool, emit: Emit) -> SimSumma
     emit("sim-progress", json!({ "done": cats.len(), "total": cats.len() }));
 
     let (stamp, when) = system::local_stamp();
-    let mut lines = vec![
-        format!("Axios Cleaner — simulação em {when}. Nada foi apagado."),
-        format!("Seriam liberados: {} · {} arquivos", human_size(s.bytes), s.files),
-        "Na limpeza de verdade, arquivos em uso são pulados, então o total pode ser um pouco menor.".into(),
-    ];
+    let total = human_size(s.bytes);
+    let mut lines = if en {
+        vec![
+            format!("Axios Cleaner — simulation on {when}. Nothing was deleted."),
+            format!("Would free: {total} · {} files", s.files),
+            "In a real cleaning, files in use are skipped, so the total may be a little smaller.".into(),
+        ]
+    } else {
+        vec![
+            format!("Axios Cleaner — simulação em {when}. Nada foi apagado."),
+            format!("Seriam liberados: {total} · {} arquivos", s.files),
+            "Na limpeza de verdade, arquivos em uso são pulados, então o total pode ser um pouco menor.".into(),
+        ]
+    };
     if s.cancelled {
-        lines.push("A simulação foi cancelada antes do fim.".into());
+        lines.push(if en { "The simulation was cancelled before the end." } else { "A simulação foi cancelada antes do fim." }.into());
     }
     lines.push(String::new());
     lines.extend(body);
-    s.log = store::write_log("simulacao", &stamp, &lines);
+    s.log = store::write_log(if en { "simulation" } else { "simulacao" }, &stamp, &lines);
     s
 }
 
@@ -222,6 +254,8 @@ fn record_history(s: &CleanSummary, scheduled: bool) {
     store::push_history(json!({
         "at": at, "freed": s.freed, "files": s.files, "skipped": s.skipped,
         "what": summarize_names(&s.items), "log": s.log, "auto": scheduled, "cancelled": s.cancelled,
+        // ids: a tela monta os nomes no idioma atual ("what" fica para historicos antigos)
+        "ids": s.items.iter().map(|i| i.id.clone()).collect::<Vec<_>>(),
     }));
 }
 

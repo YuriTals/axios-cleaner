@@ -2,6 +2,7 @@
 
 import { CHANNELS, VERSION, channel } from "./catalog.js";
 import { fmt } from "./format.js";
+import { t } from "./i18n.js";
 import { hold, statusText } from "./run.js";
 import { S, idsOf, selectedBytes, bytesOf } from "./state.js";
 import { drawMap } from "./canvas.js";
@@ -52,8 +53,8 @@ function junkOf(c) {
 function renderChannels() {
   document.querySelector("#channels").innerHTML = CHANNELS.map((c) => `
     ${c.sep ? `<div class="navsep"></div>` : ""}
-    <button class="ch" data-go="${c.id}" title="${c.t}" ${S.route === c.id ? 'aria-current="page"' : ""}>
-      <span class="code">${c.code}</span><span class="t">${c.t}</span><span class="dot ${junkOf(c) ? "has" : ""}"></span>
+    <button class="ch" data-go="${c.id}" title="${t(c.t)}" ${S.route === c.id ? 'aria-current="page"' : ""}>
+      <span class="code">${c.code}</span><span class="t">${t(c.t)}</span><span class="dot ${junkOf(c) ? "has" : ""}"></span>
     </button>`).join("") + `<div class="nav-foot">v${VERSION}\n${S.admin ? "ADMIN" : "USER"}</div>`;
 }
 
@@ -144,7 +145,7 @@ export function updateLive() {
   const st = S.stats;
   if (!st) return;
   const pct = (v) => (v == null ? "--" : Math.round(v) + "%");
-  const junk = S.scanAt ? ` · lixo <em>${fmt(selectedBytes())}</em>` : "";
+  const junk = S.scanAt ? ` · ${t("lixo")} <em>${fmt(selectedBytes())}</em>` : "";
   document.querySelector("#readout").innerHTML =
     `sys :: cpu <b>${pct(st.cpu)}</b> · gpu <b>${pct(st.gpu)}</b> · mem <b>${pct((st.mem_used / st.mem_total) * 100)}</b>${junk}`;
 }

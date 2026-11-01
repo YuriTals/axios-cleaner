@@ -1,17 +1,21 @@
-// Ferramentas: arquivos grandes, mapa de espaco, inicializacao e manutencao.
+// Ferramentas: arquivos grandes, duplicados, mapa de espaco, inicializacao e manutencao.
 
 import { BIG_FILE_SIZES_MB, DUP_SIZES_MB, TASKS } from "../catalog.js";
 import { ago, asciiBar, esc, fmt, parentOf, plural } from "../format.js";
+import { t, tb } from "../i18n.js";
 import { runButton, runFor, runHint } from "../run.js";
 import { S, busy, dupGroupsFullyPicked } from "../state.js";
 import { actionBar, empty, panelHeader } from "../widgets.js";
 import { mapSegments } from "../canvas.js";
 
+const sizeLabel = (mb) => (mb >= 1024 ? `${mb / 1024} GB` : `${mb} MB`);
+
+const sentNote = (result) =>
+  `<b>${t("{files} para a Lixeira", { files: plural(result[0], "arquivo enviado", "arquivos enviados") })}</b> · ${fmt(result[1])}`;
+
 // ---------------------------------------------------------------------------
 // Arquivos grandes
 // ---------------------------------------------------------------------------
-
-const sizeLabel = (mb) => (mb >= 1024 ? `${mb / 1024} GB` : `${mb} MB`);
 
 function bigFileRow(f) {
   const on = S.big.picked.has(f.path);
@@ -19,18 +23,18 @@ function bigFileRow(f) {
     <div class="row" aria-checked="${on}">
       <button class="row-main" role="checkbox" aria-checked="${on}" data-pick="${esc(f.path)}" ${busy() ? "disabled" : ""}>
         <span class="check"></span>
-        <span class="main"><span class="name">${esc(f.name)}</span><span class="desc">${esc(f.folder || "Pasta do usuário")} · ${ago(f.modified)}</span></span>
+        <span class="main"><span class="name">${esc(f.name)}</span><span class="desc">${esc(f.folder || t("Pasta do usuário"))} · ${ago(f.modified)}</span></span>
         <span class="size">${fmt(f.bytes)}</span>
       </button>
-      <button class="row-more" data-reveal="${esc(f.path)}" title="Mostrar no Explorer">↗</button>
+      <button class="row-more" data-reveal="${esc(f.path)}" title="${t("Mostrar no Explorer")}">↗</button>
     </div>`;
 }
 
 function bigFileList() {
   const B = S.big;
-  if (B.loading) return empty(`<span class="spinner"></span><br>Procurando arquivos grandes<br><button class="linkbtn mono" data-cancel="large">Parar</button>`);
-  if (!B.items) return empty("Escolha o tamanho mínimo para procurar.");
-  if (!B.items.length) return empty(`Nenhum arquivo acima de ${sizeLabel(B.min)}.`);
+  if (B.loading) return empty(`<span class="spinner"></span><br>${t("Procurando arquivos grandes")}<br><button class="linkbtn mono" data-cancel="large">${t("Parar")}</button>`);
+  if (!B.items) return empty(t("Escolha o tamanho mínimo para procurar."));
+  if (!B.items.length) return empty(t("Nenhum arquivo acima de {size}.", { size: sizeLabel(B.min) }));
   return B.items.map(bigFileRow).join("");
 }
 
@@ -41,17 +45,15 @@ export function viewBig() {
   const picked = items.filter((f) => B.picked.has(f.path));
   const bytes = picked.reduce((a, f) => a + f.bytes, 0);
   const total = items.reduce((a, f) => a + f.bytes, 0);
-  const note = B.result
-    ? `<b>${plural(B.result[0], "arquivo enviado", "arquivos enviados")} para a Lixeira</b> · ${fmt(B.result[1])}`
-    : "Destino: Lixeira — dá para restaurar depois.";
+  const note = B.result ? sentNote(B.result) : t("Destino: Lixeira — dá para restaurar depois.");
   return `
     <section class="panel">
-      ${panelHeader("big", "Arquivos grandes", `<div class="toggle">${chips}</div>`)}
-      <div class="sub">Na sua pasta de usuário (Downloads, Documentos, Vídeos…). Nada vem marcado: revise e escolha.</div>
+      ${panelHeader("big", t("Arquivos grandes"), `<div class="toggle">${chips}</div>`)}
+      <div class="sub">${t("Na sua pasta de usuário (Downloads, Documentos, Vídeos…). Nada vem marcado: revise e escolha.")}</div>
       <div class="list scroll">${bigFileList()}</div>
       ${actionBar({
-        label: "Selecionado", size: bytes, count: plural(picked.length, "arquivo", "arquivos"), note,
-        frac: total ? bytes / total : 0, action: "recycle-big", buttonLabel: "MOVER P/ LIXEIRA",
+        label: t("Selecionado"), size: bytes, count: plural(picked.length, "arquivo", "arquivos"), note,
+        frac: total ? bytes / total : 0, action: "recycle-big", buttonLabel: t("MOVER P/ LIXEIRA"),
         disabled: !picked.length || B.loading || busy(),
       })}
     </section>`;
@@ -67,17 +69,18 @@ function dupFileRow(f, k) {
     <div class="row" aria-checked="${on}">
       <button class="row-main" role="checkbox" aria-checked="${on}" data-duppick="${esc(f.path)}" ${busy() ? "disabled" : ""}>
         <span class="check"></span>
-        <span class="main"><span class="name">${esc(f.name)}${k === 0 ? `<span class="tag soft">MAIS ANTIGA</span>` : ""}</span><span class="desc">${esc(f.folder || "Pasta do usuário")} · ${ago(f.modified)}</span></span>
+        <span class="main"><span class="name">${esc(f.name)}${k === 0 ? `<span class="tag soft">${t("MAIS ANTIGA")}</span>` : ""}</span><span class="desc">${esc(f.folder || t("Pasta do usuário"))} · ${ago(f.modified)}</span></span>
       </button>
-      <button class="row-more" data-reveal="${esc(f.path)}" title="Mostrar no Explorer">↗</button>
+      <button class="row-more" data-reveal="${esc(f.path)}" title="${t("Mostrar no Explorer")}">↗</button>
     </div>`;
 }
 
 function dupGroup(g) {
   const full = g.files.every((f) => S.dups.picked.has(f.path));
+  const status = full ? t("todas marcadas: deixe uma") : t("{size} a liberar", { size: fmt(g.bytes * (g.files.length - 1)) });
   return `
     <div class="dgroup ${full ? "full" : ""}">
-      <div class="dgroup-h"><span>${g.files.length} cópias · ${fmt(g.bytes)} cada</span><span>${full ? "todas marcadas: deixe uma" : `${fmt(g.bytes * (g.files.length - 1))} a liberar`}</span></div>
+      <div class="dgroup-h"><span>${t("{n} cópias · {size} cada", { n: g.files.length, size: fmt(g.bytes) })}</span><span>${status}</span></div>
       ${g.files.map(dupFileRow).join("")}
     </div>`;
 }
@@ -88,14 +91,14 @@ function dupList() {
     const p = D.progress || {};
     const f = p.total ? p.done / p.total : 0;
     return empty(`
-      <span class="spinner"></span><br>${esc(p.phase || "Listando")} · ${p.total ? `${p.done}/${p.total}` : "lendo pastas"}<br>
+      <span class="spinner"></span><br>${esc(tb(p.phase || "Listando"))} · ${p.total ? `${p.done}/${p.total}` : t("lendo pastas")}<br>
       <div class="ascii" style="margin:10px 0">${asciiBar(f, 32)}</div>
       <span class="muted">${esc(p.current || "")}</span><br>
-      <button class="linkbtn mono" data-cancel="dups">Parar</button>`);
+      <button class="linkbtn mono" data-cancel="dups">${t("Parar")}</button>`);
   }
-  if (D.error) return empty(esc(D.error));
-  if (!D.groups) return empty(`Procura arquivos com exatamente o mesmo conteúdo, mesmo com nomes diferentes.<br><br><button class="btn" data-dupsearch>Procurar</button>`);
-  if (!D.groups.length) return empty(`Nenhum arquivo duplicado acima de ${sizeLabel(D.min)}.`);
+  if (D.error) return empty(esc(tb(D.error)));
+  if (!D.groups) return empty(`${t("Procura arquivos com exatamente o mesmo conteúdo, mesmo com nomes diferentes.")}<br><br><button class="btn" data-dupsearch>${t("Procurar")}</button>`);
+  if (!D.groups.length) return empty(t("Nenhum arquivo duplicado acima de {size}.", { size: sizeLabel(D.min) }));
   return D.groups.map(dupGroup).join("");
 }
 
@@ -109,24 +112,23 @@ export function viewDups() {
   const bytes = picked.reduce((a, f) => a + f.bytes, 0);
   const wasted = groups.reduce((a, g) => a + g.bytes * (g.files.length - 1), 0);
   const blocked = dupGroupsFullyPicked().length > 0;
-  const note = blocked ? `<b>Em algum grupo todas as cópias estão marcadas.</b> Deixe pelo menos uma.`
-    : D.result ? `<b>${plural(D.result[0], "arquivo enviado", "arquivos enviados")} para a Lixeira</b> · ${fmt(D.result[1])}`
-      : "Destino: Lixeira — dá para restaurar depois.";
-  const tools = groups.length ? `<button class="linkbtn mono" data-dupmark>Marcar cópias</button>` : "";
+  const note = blocked ? `<b>${t("Em algum grupo todas as cópias estão marcadas.")}</b> ${t("Deixe pelo menos uma.")}`
+    : D.result ? sentNote(D.result) : t("Destino: Lixeira — dá para restaurar depois.");
+  const tools = groups.length ? `<button class="linkbtn mono" data-dupmark>${t("Marcar cópias")}</button>` : "";
   return `
     <section class="panel">
-      ${panelHeader("dups", "Arquivos duplicados", `<div class="toggle">${chips}</div>`)}
+      ${panelHeader("dups", t("Arquivos duplicados"), `<div class="toggle">${chips}</div>`)}
       <div class="crumb">
-        <button class="linkbtn mono" data-duproot="home" ${D.loading ? "disabled" : ""}>Usuário</button>
-        <button class="linkbtn mono" data-duproot="pick" ${D.loading ? "disabled" : ""}>Escolher pasta…</button>
+        <button class="linkbtn mono" data-duproot="home" ${D.loading ? "disabled" : ""}>${t("Usuário")}</button>
+        <button class="linkbtn mono" data-duproot="pick" ${D.loading ? "disabled" : ""}>${t("Escolher pasta…")}</button>
         <span class="path">${esc(root)}</span>
-        ${D.groups && !D.loading ? `<button class="linkbtn mono" data-dupsearch>Procurar de novo</button>` : ""}${tools}
+        ${D.groups && !D.loading ? `<button class="linkbtn mono" data-dupsearch>${t("Procurar de novo")}</button>` : ""}${tools}
       </div>
-      <div class="sub">Nada vem marcado: revise e escolha. Cópias usadas por programas, como mods em cada instância de um jogo, podem ser necessárias. Pastas do Windows, de programas e da Steam ficam de fora.</div>
+      <div class="sub">${t("Nada vem marcado: revise e escolha. Cópias usadas por programas, como mods em cada instância de um jogo, podem ser necessárias. Pastas do Windows, de programas e da Steam ficam de fora.")}</div>
       <div class="list scroll">${dupList()}</div>
       ${actionBar({
-        label: "Selecionado", size: bytes, count: `${plural(picked.length, "arquivo", "arquivos")} · ${fmt(wasted)} em cópias`, note,
-        frac: wasted ? bytes / wasted : 0, action: "recycle-dups", buttonLabel: "MOVER P/ LIXEIRA",
+        label: t("Selecionado"), size: bytes, count: `${plural(picked.length, "arquivo", "arquivos")} · ${t("{size} em cópias", { size: fmt(wasted) })}`, note,
+        frac: wasted ? bytes / wasted : 0, action: "recycle-dups", buttonLabel: t("MOVER P/ LIXEIRA"),
         disabled: !picked.length || D.loading || busy() || blocked,
       })}
     </section>`;
@@ -138,7 +140,7 @@ export function viewDups() {
 
 function mapRoots() {
   const disks = (S.stats?.disks || []).map((d) => ({ label: d.mount.replace(/\\$/, ""), path: d.mount }));
-  return [{ label: "Usuário", path: S.map.home }, ...disks].filter((r) => r.path);
+  return [{ label: t("Usuário"), path: S.map.home }, ...disks].filter((r) => r.path);
 }
 
 function mapLoading() {
@@ -147,27 +149,27 @@ function mapLoading() {
   return empty(`
     <div class="bignum white" style="justify-content:center"><span class="v">${Math.floor(f * 100)}</span><span class="u">%</span></div>
     <div class="ascii" style="margin:10px 0">${asciiBar(f, 32)}</div>
-    Lendo ${esc(p.current || "…")} · ${fmt(p.bytes || 0)}<br>
-    <button class="linkbtn mono" data-cancel="map">Parar</button>`);
+    ${t("Lendo {path} · {size}", { path: esc(p.current || "…"), size: fmt(p.bytes || 0) })}<br>
+    <button class="linkbtn mono" data-cancel="map">${t("Parar")}</button>`);
 }
 
 function mapLegend() {
   return mapSegments().map((s, k) => `
     <button class="mrow ${S.map.hover === k ? "hot" : ""}" ${s.dir && !s.other ? `data-mapgo="${esc(s.path)}"` : "disabled"} data-seg="${k}">
-      <i style="background:${s.color}"></i><span class="mname">${esc(s.name)}</span><span class="size">${fmt(s.bytes)}</span>
+      <i style="background:${s.color}"></i><span class="mname">${esc(s.other ? t(s.name) : s.name)}</span><span class="size">${fmt(s.bytes)}</span>
     </button>`).join("");
 }
 
 function mapBody() {
   const M = S.map;
   if (M.loading) return mapLoading();
-  if (!M.data) return empty("Escolha uma pasta ou disco para mapear.");
+  if (!M.data) return empty(t("Escolha uma pasta ou disco para mapear."));
   return `
     <div class="mapwrap">
       <div class="ring"><canvas id="mapring"></canvas>
-        <div class="ring-c"><div class="mono muted">${M.data.partial ? "Parcial" : "Mapeado"}</div><div class="ring-v">${fmt(M.data.total)}</div></div>
+        <div class="ring-c"><div class="mono muted">${t(M.data.partial ? "Parcial" : "Mapeado")}</div><div class="ring-v">${fmt(M.data.total)}</div></div>
       </div>
-      <div class="mlegend">${mapLegend()}<div class="hint" style="text-align:left">Clique numa pasta para entrar nela.</div></div>
+      <div class="mlegend">${mapLegend()}<div class="hint" style="text-align:left">${t("Clique numa pasta para entrar nela.")}</div></div>
     </div>`;
 }
 
@@ -175,14 +177,14 @@ function mapCrumb() {
   const M = S.map;
   if (!M.data || M.loading) return "&nbsp;";
   const up = parentOf(M.data.path);
-  return `${up ? `<button class="linkbtn mono" data-mapgo="${esc(up)}">&lt;- Voltar</button>` : ""}<span class="path">${esc(M.data.path)}</span>`;
+  return `${up ? `<button class="linkbtn mono" data-mapgo="${esc(up)}">&lt;- ${t("Voltar")}</button>` : ""}<span class="path">${esc(M.data.path)}</span>`;
 }
 
 export function viewMap() {
   const chips = mapRoots().map((r) => `<button data-maproot="${esc(r.path)}" aria-pressed="${S.map.root === r.path}">${esc(r.label)}</button>`).join("");
   return `
     <section class="panel">
-      ${panelHeader("map", "Mapa de espaço", `<div class="toggle">${chips}</div>`)}
+      ${panelHeader("map", t("Mapa de espaço"), `<div class="toggle">${chips}</div>`)}
       <div class="crumb">${mapCrumb()}</div>
       ${mapBody()}
     </section>`;
@@ -196,7 +198,7 @@ function startupRow(it) {
   return `
     <div class="row" aria-checked="${it.enabled}">
       <button class="row-main" role="switch" aria-checked="${it.enabled}" data-startup="${esc(it.id)}">
-        <span class="main"><span class="name">${esc(it.name)}</span><span class="desc one" title="${esc(it.command)}">${esc(it.source)} · ${esc(it.command)}</span></span>
+        <span class="main"><span class="name">${esc(it.name)}</span><span class="desc one" title="${esc(it.command)}">${esc(tb(it.source))} · ${esc(it.command)}</span></span>
         <span class="switch"></span>
       </button>
     </div>`;
@@ -204,14 +206,14 @@ function startupRow(it) {
 
 export function viewStartup() {
   const items = S.startup;
-  const list = !items ? empty(`<span class="spinner"></span><br>Lendo`)
-    : !items.length ? empty("Nenhum programa inicia com o Windows.")
+  const list = !items ? empty(`<span class="spinner"></span><br>${t("Lendo")}`)
+    : !items.length ? empty(t("Nenhum programa inicia com o Windows."))
       : items.map(startupRow).join("");
-  const counter = items ? `<span class="mono muted">${items.filter((i) => i.enabled).length}/${items.length} ligados</span>` : "";
+  const counter = items ? `<span class="mono muted">${t("{on}/{total} ligados", { on: items.filter((i) => i.enabled).length, total: items.length })}</span>` : "";
   return `
     <section class="panel">
-      ${panelHeader("startup", "Programas na inicialização", counter)}
-      <div class="sub">Desligar é reversível, igual ao Gerenciador de Tarefas: dá para religar depois.</div>
+      ${panelHeader("startup", t("Programas na inicialização"), counter)}
+      <div class="sub">${t("Desligar é reversível, igual ao Gerenciador de Tarefas: dá para religar depois.")}</div>
       <div class="list scroll">${list}</div>
     </section>`;
 }
@@ -220,21 +222,21 @@ export function viewStartup() {
 // Manutencao
 // ---------------------------------------------------------------------------
 
-function taskState(t) {
-  const st = S.tasks.status[t.id];
-  if (st === "running") return ["working", "rodando", t.desc];
-  if (st) return [st.ok ? "done" : "fail", st.ok ? `ok · ${st.secs}s` : "falhou", esc(st.msg)];
-  return ["", t.time, t.desc];
+function taskState(task) {
+  const st = S.tasks.status[task.id];
+  if (st === "running") return ["working", t("rodando"), t(task.desc)];
+  if (st) return [st.ok ? "done" : "fail", st.ok ? `ok · ${st.secs}s` : t("falhou"), esc(tb(st.msg))];
+  return ["", t(task.time), t(task.desc)];
 }
 
-function taskRow(t, locked) {
-  const on = S.tasks.picked.has(t.id);
-  const [state, size, desc] = taskState(t);
+function taskRow(task, locked) {
+  const on = S.tasks.picked.has(task.id);
+  const [state, size, desc] = taskState(task);
   return `
     <div class="row ${state}" aria-checked="${on}">
-      <button class="row-main" role="checkbox" aria-checked="${on}" data-task="${t.id}" ${locked ? "disabled" : ""}>
+      <button class="row-main" role="checkbox" aria-checked="${on}" data-task="${task.id}" ${locked ? "disabled" : ""}>
         <span class="check"></span>
-        <span class="main"><span class="name">${t.name}</span><span class="desc">${desc}</span></span>
+        <span class="main"><span class="name">${t(task.name)}</span><span class="desc">${desc}</span></span>
         <span class="size">${size}</span>
       </button>
     </div>`;
@@ -244,21 +246,21 @@ const durationLabel = (secs) => (secs < 60 ? `${secs} s` : `${Math.round(secs / 
 
 export function viewTasks() {
   const running = runFor("tasks");
-  const picked = TASKS.filter((t) => S.tasks.picked.has(t.id));
-  const estimate = picked.reduce((a, t) => a + t.est, 0);
+  const picked = TASKS.filter((task) => S.tasks.picked.has(task.id));
+  const estimate = picked.reduce((a, task) => a + task.est, 0);
   return `
     <section class="panel">
-      ${panelHeader("tasks", "Manutenção do Windows")}
-      <div class="sub">Ferramentas do próprio Windows, rodadas em sequência. As mais longas podem levar vários minutos.</div>
-      <div class="list scroll">${TASKS.map((t) => taskRow(t, !!running)).join("")}</div>
+      ${panelHeader("tasks", t("Manutenção do Windows"))}
+      <div class="sub">${t("Ferramentas do próprio Windows, rodadas em sequência. As mais longas podem levar vários minutos.")}</div>
+      <div class="list scroll">${TASKS.map((task) => taskRow(task, !!running)).join("")}</div>
       <div class="actionbar">
         <div class="ab-info">
-          <div class="mono">Fila</div>
-          <div class="ab-size">${picked.length} <small>· ${picked.length === 1 ? "tarefa" : "tarefas"} · ~${durationLabel(estimate)}</small></div>
-          <div class="ab-note">Pode continuar usando o PC enquanto roda.</div>
+          <div class="mono">${t("Fila")}</div>
+          <div class="ab-size">${picked.length} <small>· ${t(picked.length === 1 ? "tarefa" : "tarefas")} · ~${durationLabel(estimate)}</small></div>
+          <div class="ab-note">${t("Pode continuar usando o PC enquanto roda.")}</div>
         </div>
         <div>
-          ${runButton("tasks", "RODAR", (busy() && !running) || !picked.length)}
+          ${runButton("tasks", t("RODAR"), (busy() && !running) || !picked.length)}
           <div class="hint">${runHint("tasks")}</div>
         </div>
       </div>
