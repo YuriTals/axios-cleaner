@@ -15,7 +15,7 @@ export const updateBadge = () => (S.update.info && !updateSkipped() ? `AtualizaÃ
 
 /** Notas da release em texto simples (sem markdown pesado), uma linha por item. */
 function notesHtml(notes) {
-  const lines = notes
+  const lines = String(notes || "") // uma release sem notas chega como null
     .split(/\r?\n/)
     .map((l) => l.replace(/^#+\s*/, "").replace(/\*\*/g, "").trim())
     .filter(Boolean);

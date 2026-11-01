@@ -311,6 +311,7 @@ function scheduleUpdateChecks(route) {
 }
 
 async function init() {
+  document.querySelector("#ver").textContent = `v${VERSION}`;
   wireWindowButtons();
   wireInput();
   startClock();

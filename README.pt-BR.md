@@ -105,7 +105,7 @@ npm test             # testes da interface (node --test) e do Rust (cargo test)
 
 ### Publicando uma atualização
 
-1. Aumente a versão em `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `package.json` e `ui/js/catalog.js`, faça commit e push.
+1. Rode `npm run bump -- 1.2.4` (atualiza todos os arquivos que têm a versão), faça commit e push. O `npm test` falha se os arquivos divergirem.
 2. Rode `npm run release -- notas.md`. Ele gera o instalador assinado com a chave de atualização (`~/.tauri/axios-cleaner-updater.key`, fora do repositório), monta o `latest.json` e publica a release neste repositório.
 3. Os apps instalados com a verificação ligada vão oferecer a versão nova.
 

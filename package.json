@@ -9,7 +9,8 @@
     "test": "npm run test:ui && npm run test:rust",
     "test:ui": "node --test \"tests/ui/*.test.js\"",
     "test:rust": "cd src-tauri && set AXIOS_NO_ELEVATE=1&& cargo test --release",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "bump": "node scripts/bump.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0"

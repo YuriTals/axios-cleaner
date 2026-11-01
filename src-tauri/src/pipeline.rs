@@ -65,9 +65,14 @@ fn selected_categories(ids: &[String]) -> Vec<&'static Category> {
 }
 
 /// Fecha os apps que travam os arquivos e devolve o que deve ser reaberto.
-fn close_running_apps(cats: &[&Category], only: Option<&[String]>, summary: &mut CleanSummary, emit: Emit) -> Vec<PathBuf> {
+/// Processos das categorias que podem ser fechados: todos, ou so os de `only`.
+fn closable(cats: &[&Category], only: Option<&[String]>) -> Vec<&'static str> {
     let allowed = |name: &str| only.map_or(true, |list| list.iter().any(|n| n.eq_ignore_ascii_case(name)));
-    let names: Vec<&str> = cats.iter().flat_map(|c| c.processes.iter().copied()).filter(|n| allowed(n)).collect();
+    cats.iter().flat_map(|c| c.processes.iter().copied()).filter(|n| allowed(n)).collect()
+}
+
+fn close_running_apps(cats: &[&Category], only: Option<&[String]>, summary: &mut CleanSummary, emit: Emit) -> Vec<PathBuf> {
+    let names = closable(cats, only);
     if names.is_empty() {
         return vec![];
     }
@@ -187,6 +192,15 @@ mod tests {
         assert_eq!(summarize_names(&[item("chrome")]), "Google Chrome");
         let many: Vec<_> = ["chrome", "edge", "firefox", "brave", "vivaldi"].iter().map(|i| item(i)).collect();
         assert_eq!(summarize_names(&many), "Google Chrome, Microsoft Edge, Mozilla Firefox +2");
+    }
+
+    #[test]
+    fn closable_respects_the_users_choice() {
+        let cats = selected_categories(&["chrome".into(), "teams".into()]);
+        assert_eq!(closable(&cats, None), vec!["chrome.exe", "ms-teams.exe", "Teams.exe"], "sem escolha, fecha todos");
+        let only = vec!["teams.exe".to_string(), "MS-TEAMS.EXE".to_string()];
+        assert_eq!(closable(&cats, Some(&only)), vec!["ms-teams.exe", "Teams.exe"], "so os escolhidos, sem diferenciar maiusculas");
+        assert!(closable(&cats, Some(&[])).is_empty(), "lista vazia nao fecha nada");
     }
 
     #[test]

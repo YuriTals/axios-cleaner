@@ -29,6 +29,13 @@ export const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "
 
 export const appNames = (list) => list.map((p) => APP_NAMES[p] || p.replace(/\.exe$/i, ""));
 
+/** Um item por nome amigavel: Teams.exe e ms-teams.exe viram um so "Teams". */
+export function groupApps(exes) {
+  const groups = {};
+  exes.forEach((exe) => (groups[appNames([exe])[0]] ||= []).push(exe));
+  return Object.entries(groups).map(([name, list]) => ({ name, exes: list }));
+}
+
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
 /** "há 3 dias", "há 2 meses"... a partir de segundos desde 1970. */

@@ -1,7 +1,7 @@
 // Acoes que conversam com o backend: varrer, limpar, manutencao, ferramentas.
 
 import { TASKS, taskById } from "./catalog.js";
-import { appNames, esc, fmt, plural } from "./format.js";
+import { esc, fmt, groupApps, plural } from "./format.js";
 import { S, allIds, busy, filesOf, idsOf, saveConfig, selIn, selectedBytes } from "./state.js";
 import { invoke } from "./tauri.js";
 import { render, updateLive } from "./render.js";
@@ -67,11 +67,8 @@ export async function clean(action) {
   if (S.settings.closeApps) {
     const running = await invoke("running_apps", { ids }).catch(() => []);
     if (running.length) {
-      // Um item por nome amigavel: Teams.exe e ms-teams.exe viram "Teams".
-      const groups = {};
-      running.forEach((exe) => (groups[appNames([exe])[0]] ||= []).push(exe));
-      const apps = Object.entries(groups).map(([name, exes]) => ({ name, exes }));
-      S.askApps = { action, apps, picked: new Set(Object.keys(groups)) };
+      const apps = groupApps(running);
+      S.askApps = { action, apps, picked: new Set(apps.map((a) => a.name)) };
       render();
       return;
     }
