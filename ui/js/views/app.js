@@ -28,14 +28,17 @@ function historyRow(h) {
       <span class="name">${when}${tags}</span>
       <span class="desc">${plural(h.files || 0, "arquivo", "arquivos")} · ${esc(historyWhat(h))}</span></span>
       <span class="size">${fmt(h.freed || 0)}</span></span>
-      ${h.log ? `<button class="row-more" data-openfile="${esc(h.log)}" title="${t("Abrir log")}">log</button>` : ""}
+      ${h.log ? `<button class="row-more" data-openfile="${esc(h.log)}" title="${t("Abrir log")}" aria-label="${t("Abrir log")}">log</button>` : ""}
     </div>`;
 }
 
 export function viewHistory() {
   const total = S.history.reduce((a, h) => a + (h.freed || 0), 0);
   const actions = `<button class="linkbtn mono" data-logs>${t("Pasta de logs")}</button>` +
-    (S.history.length ? `<button class="linkbtn mono" data-clearhistory>${t("Apagar histórico")}</button>` : "");
+    (!S.history.length ? ""
+      : S.confirmClear
+        ? `<span class="mono muted">${t("Apagar todo o histórico?")}</span><button class="linkbtn mono danger" data-clearhistory="yes">${t("Apagar")}</button><button class="linkbtn mono" data-clearhistory="no" data-autofocus>${t("Cancelar")}</button>`
+        : `<button class="linkbtn mono" data-clearhistory="ask">${t("Apagar histórico")}</button>`);
   const rows = S.history.slice().reverse().map(historyRow).join("");
   return `
     <section class="panel">
@@ -100,7 +103,7 @@ function scheduleSection() {
 function appearanceSection() {
   const current = S.settings.zoom || 1;
   const zooms = ZOOM_LEVELS.map(([z, label]) => `<button data-zoom="${z}" aria-pressed="${Math.abs(current - z) < 0.001}">${label}</button>`).join("");
-  const langs = LANGS.map(([code, label]) => `<button data-lang="${code}" aria-pressed="${getLang() === code}">${label}</button>`).join("");
+  const langs = LANGS.map(([code, label]) => `<button data-lang="${code}" aria-pressed="${getLang() === code}">${t(label)}</button>`).join("");
   return `
     <div class="dh">${t("Aparência")}</div>
     <div class="sched"><span class="sched-label">${t("Idioma")}</span><div class="toggle">${langs}</div></div>
@@ -128,7 +131,7 @@ function pathRows(key, emptyText) {
   if (!list.length) return `<div class="row static"><span class="row-main"><span class="main"><span class="desc">${emptyText}</span></span></span></div>`;
   return list.map((p) => `
     <div class="row static"><span class="row-main"><span class="main"><span class="name path-name" title="${esc(p)}">${esc(p)}</span></span></span>
-      <button class="row-more" data-pathrm="${key}" data-path="${esc(p)}" title="${t("Remover da lista")}">×</button></div>`).join("");
+      <button class="row-more" data-pathrm="${key}" data-path="${esc(p)}" title="${t("Remover da lista")}" aria-label="${t("Remover da lista")}">×</button></div>`).join("");
 }
 
 function pathMsg(key) {

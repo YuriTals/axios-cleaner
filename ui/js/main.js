@@ -60,7 +60,11 @@ const CLICK = {
     const saved = saveConfig();
     if (RESCAN_SETTINGS.includes(key)) saved.then(() => actions.scan());
   },
-  clearhistory: () => { invoke("clear_history"); S.history = []; },
+  // Apagar o historico pede confirmacao: "ask" -> "yes" apaga, "no" desiste.
+  clearhistory: (step) => {
+    S.confirmClear = step === "ask";
+    if (step === "yes") { invoke("clear_history"); S.history = []; }
+  },
   pick: (path) => { toggle(S.big.picked, path); S.big.result = null; },
   bigmin: (mb) => { S.big.min = +mb; actions.loadBigFiles(); return false; },
   dupmin: (mb) => { S.dups.min = +mb; if (S.dups.groups) actions.loadDups(); },
@@ -320,7 +324,10 @@ const DEMO_UPDATE = { version: "1.3.0", current: VERSION, date: "2026-11-01", no
 
 /** AXIOS_ROUTE=demo-*: estados simulados para capturas de tela (desenvolvimento). */
 async function applyDevRoute(route) {
-  if (route === "demo-update") Object.assign(S.update, { info: DEMO_UPDATE, open: true });
+  if (route === "demo-update") {
+    Object.assign(S.update, { info: DEMO_UPDATE, open: true });
+    render();
+  }
   if (route === "demo-result") actions.showResult({ freed: 4.37 * 1024 ** 3, files: 31240, skipped: 112 });
   if (!DEMO_RUN_ROUTES.includes(route)) return;
   await actions.scan(); // o nucleo mostra dados reais por tras do botao simulado

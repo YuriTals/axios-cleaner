@@ -26,7 +26,7 @@ function bigFileRow(f) {
         <span class="main"><span class="name">${esc(f.name)}</span><span class="desc">${esc(f.folder || t("Pasta do usuário"))} · ${ago(f.modified)}</span></span>
         <span class="size">${fmt(f.bytes)}</span>
       </button>
-      <button class="row-more" data-reveal="${esc(f.path)}" title="${t("Mostrar no Explorer")}">↗</button>
+      <button class="row-more" data-reveal="${esc(f.path)}" title="${t("Mostrar no Explorer")}" aria-label="${t("Mostrar no Explorer")}">↗</button>
     </div>`;
 }
 
@@ -71,7 +71,7 @@ function dupFileRow(f, k) {
         <span class="check"></span>
         <span class="main"><span class="name">${esc(f.name)}${k === 0 ? `<span class="tag soft">${t("MAIS ANTIGA")}</span>` : ""}</span><span class="desc">${esc(f.folder || t("Pasta do usuário"))} · ${ago(f.modified)}</span></span>
       </button>
-      <button class="row-more" data-reveal="${esc(f.path)}" title="${t("Mostrar no Explorer")}">↗</button>
+      <button class="row-more" data-reveal="${esc(f.path)}" title="${t("Mostrar no Explorer")}" aria-label="${t("Mostrar no Explorer")}">↗</button>
     </div>`;
 }
 

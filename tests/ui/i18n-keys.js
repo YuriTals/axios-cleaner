@@ -39,13 +39,14 @@ export async function dataKeys() {
   const { KIND_LABEL } = await import("../../ui/js/run.js");
   const { RUN_WARNINGS } = await import("../../ui/js/views/dialogs.js");
   const { BEHAVIOR_TEXTS } = await import("../../ui/js/views/app.js");
+  const { LANGS } = await import("../../ui/js/i18n.js");
   return new Set([
     ...catalog.CHANNELS.flatMap((c) => [c.t, c.sub].filter(Boolean)),
     ...catalog.TASKS.flatMap((x) => [x.name, x.desc, x.time]),
     ...catalog.WEEKDAYS.map(([, l]) => l),
     ...catalog.SCHEDULE_FREQS.map(([, l]) => l),
     catalog.BIG_CACHE_TIP, ...Object.values(catalog.BIG_CACHE_TIPS),
-    ...Object.values(KIND_LABEL), ...Object.values(RUN_WARNINGS), ...BEHAVIOR_TEXTS,
+    ...Object.values(KIND_LABEL), ...Object.values(RUN_WARNINGS), ...BEHAVIOR_TEXTS, ...LANGS.map(([, l]) => l),
     "Lixeira", "Outros",
   ]);
 }

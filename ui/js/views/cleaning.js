@@ -45,7 +45,7 @@ function categoryRow(c) {
         </span>
         <span class="size">${size}</span>
       </button>
-      <button class="row-more" data-details="${c.id}" title="${t("Ver detalhes")}" aria-expanded="${open}">${open ? "[-]" : "[+]"}</button>
+      <button class="row-more" data-details="${c.id}" title="${t("Ver detalhes")}" aria-label="${t("Ver detalhes")}" aria-expanded="${open}">${open ? "[-]" : "[+]"}</button>
     </div>
     ${open ? detailsHtml(c.id) : ""}`;
 }

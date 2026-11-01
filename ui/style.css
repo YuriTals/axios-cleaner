@@ -10,7 +10,7 @@
   color-scheme: dark;
   --bg: #0C0C0F; --panel: rgba(20, 20, 24, .86); --deep: #101013; --raised: #1C1C21;
   --line: #24242A; --line2: #34343C; --grid: rgba(255, 255, 255, .04);
-  --text: #F2F2F4; --text2: #CDCDD3; --muted: #A2A2AA; --faint: #74747C;
+  --text: #F2F2F4; --text2: #CDCDD3; --muted: #A2A2AA; --faint: #86868E; /* >= 4,5:1 ate sobre --raised */
   --ruby: #FF2448; --ruby-hi: #FF5A74; --ruby-dim: #4A0C18; --ruby-off: #2A070E;
   --glow: rgba(255, 36, 72, .38);
   --ok: #7BE38F;
@@ -37,7 +37,7 @@ body::after {
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 1px solid rgba(255, 36, 72, .7); outline-offset: 2px; }
 
-.mono { font-family: var(--mono); text-transform: uppercase; letter-spacing: .16em; font-size: 10.5px; }
+.mono { font-family: var(--mono); text-transform: uppercase; letter-spacing: .16em; font-size: 11px; }
 .muted { color: var(--muted); }
 .ruby { color: var(--ruby); }
 @keyframes blink { 50% { opacity: .25; } }
@@ -69,7 +69,7 @@ button { font: inherit; color: inherit; }
 .body { flex: 1; min-height: 0; display: flex; }
 
 /* ---------- trilho de navegacao (codigos) ---------- */
-.channels { width: 82px; flex: none; display: flex; flex-direction: column; align-items: stretch; padding: 8px 8px 12px; border-right: 1px solid var(--line); overflow-y: auto; }
+.channels { width: 94px; flex: none; display: flex; flex-direction: column; align-items: stretch; padding: 8px 8px 12px; border-right: 1px solid var(--line); overflow-y: auto; }
 .navsep { height: 1px; margin: 7px 14px; background: var(--line2); flex: none; }
 .ch {
   position: relative; flex: none; display: flex; flex-direction: column; align-items: center; gap: 1px;
@@ -77,7 +77,7 @@ button { font: inherit; color: inherit; }
 }
 .ch:hover { color: var(--text); background: rgba(255, 255, 255, .025); }
 .ch .code { font: 500 11px var(--mono); letter-spacing: .14em; }
-.ch .t { font: 400 9.5px var(--sans); color: var(--muted); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.ch .t { font: 400 10px var(--sans); color: var(--muted); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .ch .dot { position: absolute; top: 6px; right: 7px; width: 4px; height: 4px; border-radius: 50%; background: transparent; }
 .ch .dot.has { background: var(--text2); }
 .ch[aria-current="page"] { color: var(--ruby); }
@@ -206,7 +206,7 @@ button { font: inherit; color: inherit; }
 .ab-note { color: var(--muted); font-size: 12.5px; }
 .ab-note b { color: var(--ruby-hi); font-weight: 600; }
 .ab-note .ascii { font-size: 11px; margin-right: 10px; }
-.hint { color: var(--faint); font: 400 9.5px var(--mono); letter-spacing: .16em; text-transform: uppercase; text-align: center; margin-top: 8px; }
+.hint { color: var(--faint); font: 400 10.5px var(--mono); letter-spacing: .16em; text-transform: uppercase; text-align: center; margin-top: 8px; }
 
 /* =========================================================================
    Botao de execucao: segurar para iniciar, % ao vivo, cancelar no hover
@@ -293,7 +293,7 @@ button.rb:hover { background: linear-gradient(180deg, rgba(255, 36, 72, .24), rg
 .switch::before { content: "[ OFF ]"; }
 .row-main[aria-checked="true"] .switch { color: var(--ok); text-shadow: 0 0 6px rgba(123, 227, 143, .5); }
 .row-main[aria-checked="true"] .switch::before { content: "[ ON  ]"; }
-.tag { font: 500 9px var(--mono); letter-spacing: .14em; padding: 2px 6px; border-radius: 2px; border: 1px solid var(--ruby-dim); color: var(--ruby); }
+.tag { font: 500 10px var(--mono); letter-spacing: .14em; padding: 2px 6px; border-radius: 2px; border: 1px solid var(--ruby-dim); color: var(--ruby); }
 .tag.ok { border-color: #2d5434; color: var(--ok); }
 .tag.soft { border-color: var(--line2); color: var(--muted); }
 .row.done .size { color: var(--ok); }
@@ -302,21 +302,24 @@ button.rb:hover { background: linear-gradient(180deg, rgba(255, 36, 72, .24), rg
 .row.working::before { background: var(--ruby); animation: blink .8s steps(2) infinite; }
 
 .details { margin-top: -5px; padding: 6px 16px 12px 60px; background: var(--deep); border: 1px solid var(--line); border-top: 1px dashed var(--line2); border-radius: 0 0 3px 3px; }
-.dh { font: 500 9.5px var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--faint); margin: 16px 0 8px; }
+.dh { font: 500 10.5px var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--faint); margin: 16px 0 8px; }
 .dh::before { content: "// "; color: var(--ruby); }
 .details .dh:first-child { margin-top: 8px; }
 .drow { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 3px 0; }
 .drow .size { font: 500 11.5px var(--mono); color: var(--muted); white-space: nowrap; }
-.linkbtn { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px 0; }
-.linkbtn:hover { color: var(--ruby); }
-.linkbtn.path { flex: 1; min-width: 0; text-align: left; font: 400 12px var(--mono); letter-spacing: 0; text-transform: none; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Acao secundaria: borda discreta para parecer clicavel, area de clique >= 24px. */
+.linkbtn { background: none; border: 1px solid var(--line2); border-radius: 3px; color: var(--text2); cursor: pointer; padding: 5px 10px; min-height: 26px; transition: border-color .15s, color .15s, background .15s; }
+.linkbtn:hover:not(:disabled) { color: var(--ruby); border-color: var(--ruby-dim); background: rgba(255, 36, 72, .06); }
+.linkbtn:disabled, .btn:disabled { opacity: .45; cursor: not-allowed; }
+.linkbtn.danger { color: var(--ruby-hi); border-color: var(--ruby-dim); }
+.linkbtn.path { flex: 1; min-width: 0; text-align: left; border: 0; padding: 4px 0; min-height: 0; font: 400 12px var(--mono); letter-spacing: 0; text-transform: none; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------- controles ---------- */
 .toggle { display: inline-flex; border: 1px solid var(--line2); border-radius: 3px; padding: 2px; background: var(--deep); }
-.toggle button { border: 0; background: none; padding: 3px 10px; border-radius: 2px; cursor: pointer; color: var(--faint); font: 500 9.5px var(--mono); letter-spacing: .16em; text-transform: uppercase; }
+.toggle button { border: 0; background: none; padding: 5px 12px; min-height: 24px; border-radius: 2px; cursor: pointer; color: var(--faint); font: 500 10.5px var(--mono); letter-spacing: .16em; text-transform: uppercase; }
 .toggle button:hover { color: var(--text2); }
 .toggle button[aria-pressed="true"] { background: rgba(255, 36, 72, .14); color: var(--ruby); box-shadow: inset 0 0 0 1px var(--ruby-dim); }
-.btn { background: var(--raised); border: 1px solid var(--line2); color: var(--text); border-radius: 3px; padding: 7px 16px; font: 500 10px var(--mono); letter-spacing: .18em; text-transform: uppercase; cursor: pointer; }
+.btn { background: var(--raised); border: 1px solid var(--line2); color: var(--text); border-radius: 3px; padding: 8px 16px; font: 500 11px var(--mono); letter-spacing: .18em; text-transform: uppercase; cursor: pointer; }
 .btn:hover { border-color: var(--ruby); color: var(--ruby); }
 select, input[type="time"] { background: var(--deep); color: var(--text); border: 1px solid var(--line2); border-radius: 3px; padding: 6px 10px; font: 400 13px var(--sans); color-scheme: dark; }
 select:focus, input:focus { outline: 1px solid rgba(255, 36, 72, .7); }
@@ -328,14 +331,12 @@ select:focus, input:focus { outline: 1px solid rgba(255, 36, 72, .7); }
 .sched-label { color: var(--text2); font-size: 13px; }
 .sub-s { color: var(--muted); font-size: 12px; margin: -4px 0 8px; }
 .row .name.path-name { font: 400 12px var(--mono); letter-spacing: 0; text-transform: none; word-break: break-all; color: var(--text2); }
-.simlink { display: block; margin-top: 6px; font-size: 9.5px; }
+.simlink { display: inline-block; margin-top: 8px; font-size: 10.5px; }
 .ab-info .simlink::before { content: none; }
-.simlink:disabled { opacity: .4; cursor: default; }
-.home-act .simlink { margin: 6px auto 0; }
+.home-act .simlink { display: block; margin: 8px auto 0; }
 .sched-msg.on { color: var(--ok); }
 .sched-msg.off { color: var(--ruby-hi); }
-.rescan { font-size: 10px; letter-spacing: .14em; color: var(--text2); padding: 2px 0; }
-.rescan:disabled { color: var(--faint); cursor: default; }
+.rescan { font-size: 10.5px; letter-spacing: .14em; margin-top: 6px; }
 .about p { color: var(--text2); margin: 0 0 10px; max-width: 76ch; font-size: 13px; }
 .about b { color: var(--text); }
 
@@ -408,5 +409,9 @@ canvas.blobs { position: absolute; pointer-events: none; display: block; }
 .ask-list { max-height: 200px; overflow-y: auto; }
 .ask-warn { margin: 0; color: var(--ruby-hi); font-size: 13px; }
 .ask-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.upd-act .ask-btns { margin-top: 10px; }
+/* Botao secundario: mesmo tamanho do .btn, sem fundo (a acao principal fica em destaque). */
+.btn.ghost { background: transparent; color: var(--text2); }
+.btn.ghost:hover:not(:disabled) { background: rgba(255, 255, 255, .03); }
 .btn.yes { border-color: var(--ruby); color: #fff; background: rgba(255, 36, 72, .25); }
 .btn.yes:hover { background: var(--ruby); color: #fff; }

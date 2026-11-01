@@ -41,8 +41,8 @@ export function updateModalHtml() {
           ${runButton("update", t("ATUALIZAR"), busy() && !installing)}
           <div class="hint">${t(installing ? "O app fecha e reabre na versão nova" : "Segure até a barra encher · baixa, confere a assinatura e instala")}</div>
           ${installing ? "" : `<div class="ask-btns">
-            <button class="linkbtn mono" data-closeupdate="later" data-autofocus title="${t("Pergunta de novo na próxima vez que o app abrir")}">${t("Lembrar depois")}</button>
-            <button class="linkbtn mono" data-closeupdate="skip" title="${t("Não avisa mais sobre esta versão; a próxima será avisada")}">${t("Pular esta versão")}</button>
+            <button class="btn ghost" data-closeupdate="later" data-autofocus title="${t("Pergunta de novo na próxima vez que o app abrir")}">${t("Lembrar depois")}</button>
+            <button class="btn ghost" data-closeupdate="skip" title="${t("Não avisa mais sobre esta versão; a próxima será avisada")}">${t("Pular esta versão")}</button>
           </div>`}
         </div>
         <div class="ov-frame">+${"-".repeat(frame.length - 2)}+</div>

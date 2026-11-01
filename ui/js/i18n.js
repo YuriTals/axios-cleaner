@@ -6,7 +6,8 @@ import { EN, EN_PATTERNS } from "./lang/en.js";
 
 let lang = "pt";
 
-export const LANGS = [["pt", "Português"], ["en", "English"]];
+/** Nomes dos idiomas, escritos no idioma da interface (passam por t()). */
+export const LANGS = [["pt", "Português"], ["en", "Inglês"]];
 
 export const getLang = () => lang;
 export const english = () => lang === "en";
